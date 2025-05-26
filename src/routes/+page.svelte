@@ -1,59 +1,114 @@
 <script lang="ts">
-	import Counter from './Counter.svelte';
-	import welcome from '$lib/images/svelte-welcome.webp';
-	import welcomeFallback from '$lib/images/svelte-welcome.png';
+	let teamName = '';
+	let category = '';
+	let coachName = '';
+	let email = '';
+	let phone = '';
+
+	function handleSubmit() {
+		console.log('Registrazione inviata:', {
+			teamName,
+			category,
+			coachName,
+			email,
+			phone
+		});
+		alert('Registrazione inviata con successo!');
+	}
 </script>
 
 <svelte:head>
-	<title>Home</title>
-	<meta name="description" content="Svelte demo app" />
+	<title> Torneo Volley S3</title>
+	<meta name="description" content="Modulo di registrazione per il torneo Volley S3" />
 </svelte:head>
 
 <section>
-	<h1>
-		<span class="welcome">
-			<picture>
-				<source srcset={welcome} type="image/webp" />
-				<img src={welcomeFallback} alt="benvenuti" />
-			</picture>
-		</span>
+	<h1>Registrazione Torneo Volley S3</h1>
 
-		to your new<br />SvelteKit app
-	</h1>
+	<form on:submit|preventDefault={handleSubmit}>
+		<label>
+			Nome squadra:
+			<input type="text" bind:value={teamName} required />
+		</label>
 
-	<h2>
-		try editing <strong>src/routes/+page.svelte</strong>
-	</h2>
+		<label>
+			Categoria:
+			<select bind:value={category} required>
+				<option value="" disabled selected>Scegli una categoria</option>
+				<option value="Under 10">Under 10</option>
+				<option value="Under 12">Under 12</option>
+				<option value="Under 14">Under 14</option>
+			</select>
+		</label>
 
-	<Counter />
+		<label>
+			Nome responsabile:
+			<input type="text" bind:value={coachName} required />
+		</label>
+
+		<label>
+			Email:
+			<input type="email" bind:value={email} required />
+		</label>
+
+		<label>
+			Telefono:
+			<input type="tel" bind:value={phone} required />
+		</label>
+
+		<button type="submit">Invia registrazione</button>
+	</form>
 </section>
 
 <style>
 	section {
+		max-width: 600px;
+		margin: 2rem auto;
+		padding: 2rem;
 		display: flex;
 		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		flex: 0.6;
+		background-color: #f9f9f9;
+		border-radius: 16px; /* Angoli curvi */
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 	}
 
 	h1 {
-		width: 100%;
+		text-align: center;
+		margin-bottom: 2rem;
+		font-size: 3rem;
 	}
 
-	.welcome {
-		display: block;
-		position: relative;
-		width: 100%;
-		height: 0;
-		padding: 0 0 calc(100% * 495 / 2048) 0;
+	form {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
 	}
 
-	.welcome img {
-		position: absolute;
-		width: 100%;
-		height: 100%;
-		top: 0;
-		display: block;
+	label {
+		display: flex;
+		flex-direction: column;
+		font-weight: bold;
+	}
+
+	input, select {
+		padding: 0.5rem;
+		font-size: 1rem;
+		border: 1px solid #ccc;
+		border-radius: 8px; /* Angoli curvi */
+	}
+
+	button {
+		padding: 0.75rem;
+		font-size: 1.1rem;
+		background-color: #006eff;
+		color: white;
+		border: none;
+		border-radius: 8px; /* Angoli curvi */
+		cursor: pointer;
+		transition: background-color 0.3s ease;
+	}
+
+	button:hover {
+		background-color: #0099ff;
 	}
 </style>
