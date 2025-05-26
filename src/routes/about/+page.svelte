@@ -7,8 +7,7 @@
 	<h1>Calendario torneo</h1>
 
 	<p>
-		This is a <a href="https://svelte.dev/docs/kit">SvelteKit</a> app. You can make your own by typing
-		the following into your command line and following the prompts:
+		prossimamente!!!
 	</p>
 
 	<pre>npx sv create</pre>
