@@ -14,7 +14,7 @@
 		<span class="welcome">
 			<picture>
 				<source srcset={welcome} type="image/webp" />
-				<img src={welcomeFallback} alt="Welcome" />
+				<img src={welcomeFallback} alt="benvenuti" />
 			</picture>
 		</span>
 
