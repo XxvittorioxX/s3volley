@@ -23,7 +23,7 @@
 </svelte:head>
 
 <section>
-	<h1>Registrazione Torneo Volley S3</h1>
+	<h1>Registrazione</h1>
 
 	<form on:submit|preventDefault={handleSubmit}>
 		<label>
