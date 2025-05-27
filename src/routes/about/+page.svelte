@@ -2,7 +2,6 @@
 	import { registeredTeams } from '$lib/stores/teams';
 	import { derived } from 'svelte/store';
 
-
 	function generateMatches(teams: string[]) {
 		const matches: { team1: string; team2: string }[] = [];
 
@@ -19,6 +18,10 @@
 		return names.length >= 2 ? generateMatches(names) : [];
 	});
 </script>
+
+<svelte:head>
+	<title>Calendario Partite - Torneo Volley S3</title>
+</svelte:head>
 
 <section>
 	<h1>Calendario Partite</h1>
@@ -39,22 +42,26 @@
 		max-width: 600px;
 		margin: 2rem auto;
 		padding: 2rem;
-		background-color: #fff;
+		background-color: #f9f9f9;
 		border-radius: 16px;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 	}
+
 	h1 {
 		text-align: center;
-		margin-bottom: 1.5rem;
+		margin-bottom: 2rem;
+		font-size: 2.5rem;
 	}
+
 	ul {
 		list-style: none;
 		padding: 0;
 	}
+
 	li {
 		margin: 0.75rem 0;
 		padding: 0.5rem;
-		background-color: #f0f8ff;
+		background-color: #e6f0ff;
 		border-radius: 8px;
 	}
 </style>

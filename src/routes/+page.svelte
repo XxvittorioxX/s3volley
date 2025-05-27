@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { registeredTeams, type Team } from '$lib/stores/teams';
-	import { get, derived } from 'svelte/store';
+	import { get } from 'svelte/store';
 
 	let teamName = '';
 	let category = '';
@@ -28,29 +28,10 @@
 		email = '';
 		phone = '';
 	}
-
-	// Funzione per generare tutte le partite (round-robin)
-	function generateMatches(teams: string[]) {
-		const matches: { team1: string; team2: string }[] = [];
-
-		for (let i = 0; i < teams.length; i++) {
-			for (let j = i + 1; j < teams.length; j++) {
-				matches.push({ team1: teams[i], team2: teams[j] });
-			}
-		}
-		return matches;
-	}
-
-	// Store derivato per generare il calendario partite a partire dalle squadre registrate
-	const matches = derived(registeredTeams, $teams => {
-		const names = $teams.map(t => t.teamName);
-		return names.length >= 2 ? generateMatches(names) : [];
-	});
 </script>
 
 <svelte:head>
-	<title>Torneo Volley S3</title>
-	<meta name="description" content="Modulo di registrazione e calendario partite torneo Volley S3" />
+	<title>Torneo Volley S3 - Registrazione</title>
 </svelte:head>
 
 <section>
@@ -89,7 +70,7 @@
 
 		<button type="submit">Invia registrazione</button>
 	</form>
-
+</section>
 
 <style>
 	section {
@@ -140,17 +121,5 @@
 
 	button:hover {
 		background-color: #0099ff;
-	}
-
-	ul {
-		list-style: none;
-		padding: 0;
-	}
-
-	li {
-		margin: 0.75rem 0;
-		padding: 0.5rem;
-		background-color: #e6f0ff;
-		border-radius: 8px;
 	}
 </style>
