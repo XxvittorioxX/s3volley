@@ -1,6 +1,6 @@
 <svelte:head>
 	<title>calendario</title>
-	<meta name="description" content="About this app" />
+	<meta name="description" content="Calendario Torneo Volley S3" />
 </svelte:head>
 
 <div class="text-column">
@@ -10,7 +10,7 @@
 		prossimamente!!!
 	</p>
 
-	<pre>npx sv create</pre>
+	<pre>lavori in corso</pre>
 
 	<p>
 		The page you're looking at is purely static HTML, with no client-side interactivity needed.
