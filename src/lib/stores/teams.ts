@@ -1,3 +1,4 @@
+// src/lib/stores/teams.ts
 import { writable } from 'svelte/store';
 
 export type Team = {
