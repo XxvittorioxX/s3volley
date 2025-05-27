@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { registeredTeams, type Team } from '$lib/stores/teams';
+	import { get, derived } from 'svelte/store';
+
 	let teamName = '';
 	let category = '';
 	let coachName = '';
@@ -6,24 +9,52 @@
 	let phone = '';
 
 	function handleSubmit() {
-		console.log('Registrazione inviata:', {
-			teamName,
-			category,
-			coachName,
-			email,
-			phone
-		});
+		const current = get(registeredTeams);
+
+		if (current.length >= 4) {
+			alert('Il numero massimo di 4 squadre è stato raggiunto.');
+			return;
+		}
+
+		const newTeam: Team = { teamName, category, coachName, email, phone };
+		registeredTeams.update(teams => [...teams, newTeam]);
+
 		alert('Registrazione inviata con successo!');
+
+		// reset campi
+		teamName = '';
+		category = '';
+		coachName = '';
+		email = '';
+		phone = '';
 	}
+
+	// Funzione per generare tutte le partite (round-robin)
+	function generateMatches(teams: string[]) {
+		const matches: { team1: string; team2: string }[] = [];
+
+		for (let i = 0; i < teams.length; i++) {
+			for (let j = i + 1; j < teams.length; j++) {
+				matches.push({ team1: teams[i], team2: teams[j] });
+			}
+		}
+		return matches;
+	}
+
+	// Store derivato per generare il calendario partite a partire dalle squadre registrate
+	const matches = derived(registeredTeams, $teams => {
+		const names = $teams.map(t => t.teamName);
+		return names.length >= 2 ? generateMatches(names) : [];
+	});
 </script>
 
 <svelte:head>
-	<title> Torneo Volley S3</title>
-	<meta name="description" content="Modulo di registrazione per il torneo Volley S3" />
+	<title>Torneo Volley S3</title>
+	<meta name="description" content="Modulo di registrazione e calendario partite torneo Volley S3" />
 </svelte:head>
 
 <section>
-	<h1>Registrazione</h1>
+	<h1>Registrazione Squadra</h1>
 
 	<form on:submit|preventDefault={handleSubmit}>
 		<label>
@@ -58,24 +89,22 @@
 
 		<button type="submit">Invia registrazione</button>
 	</form>
-</section>
+
 
 <style>
 	section {
 		max-width: 600px;
 		margin: 2rem auto;
 		padding: 2rem;
-		display: flex;
-		flex-direction: column;
 		background-color: #f9f9f9;
-		border-radius: 16px; /* Angoli curvi */
+		border-radius: 16px;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 	}
 
 	h1 {
 		text-align: center;
 		margin-bottom: 2rem;
-		font-size: 3rem;
+		font-size: 2.5rem;
 	}
 
 	form {
@@ -90,11 +119,12 @@
 		font-weight: bold;
 	}
 
-	input, select {
+	input,
+	select {
 		padding: 0.5rem;
 		font-size: 1rem;
 		border: 1px solid #ccc;
-		border-radius: 8px; /* Angoli curvi */
+		border-radius: 8px;
 	}
 
 	button {
@@ -103,12 +133,24 @@
 		background-color: #006eff;
 		color: white;
 		border: none;
-		border-radius: 8px; /* Angoli curvi */
+		border-radius: 8px;
 		cursor: pointer;
 		transition: background-color 0.3s ease;
 	}
 
 	button:hover {
 		background-color: #0099ff;
+	}
+
+	ul {
+		list-style: none;
+		padding: 0;
+	}
+
+	li {
+		margin: 0.75rem 0;
+		padding: 0.5rem;
+		background-color: #e6f0ff;
+		border-radius: 8px;
 	}
 </style>

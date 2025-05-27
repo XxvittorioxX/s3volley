@@ -2,7 +2,7 @@
 	import { registeredTeams } from '$lib/stores/teams';
 	import { derived } from 'svelte/store';
 
-	// Funzione per generare partite da array di squadre
+
 	function generateMatches(teams: string[]) {
 		const matches: { team1: string; team2: string }[] = [];
 
@@ -14,7 +14,6 @@
 		return matches;
 	}
 
-	// Store derivato: crea partite solo con i nomi delle squadre
 	const matches = derived(registeredTeams, $teams => {
 		const names = $teams.map(t => t.teamName);
 		return names.length >= 2 ? generateMatches(names) : [];
