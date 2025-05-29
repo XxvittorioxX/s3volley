@@ -1,52 +1,47 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { registeredTeams } from '$lib/stores/teams';
 	import { matches, type Match } from '$lib/stores/matches';
 	import { get } from 'svelte/store';
+	import { onMount } from 'svelte';
 
-	function generateMatches(teams: string[]): Match[] {
-		const res: Match[] = [];
-		for (let i = 0; i < teams.length; i++) {
-			for (let j = i + 1; j < teams.length; j++) {
-				res.push({
-					team1: teams[i],
-					team2: teams[j],
-					sets: [],
-					winner: null
-				});
-			}
-		}
-		return res;
-	}
+	let localMatches: Match[] = [];
 
 	onMount(() => {
-		const teams = get(registeredTeams).map(t => t.teamName);
-		if (teams.length >= 2 && get(matches).length === 0) {
-			matches.set(generateMatches(teams));
-		}
+		localMatches = structuredClone(get(matches));
 	});
 
-	function updateSet(matchIndex: number, setIndex: number, team: '1' | '2', value: number) {
-		matches.update(all => {
-			const match = all[matchIndex];
-			if (!match.sets[setIndex]) match.sets[setIndex] = [0, 0];
-			match.sets[setIndex][team === '1' ? 0 : 1] = value;
+	function updateSet(matchIndex: number, setIndex: number, team: 'team1' | 'team2', value: string) {
+		const num = parseInt(value);
+		if (isNaN(num) || num < 0) return;
 
-			// Calcolo vincitore
-			let setWonA = 0;
-			let setWonB = 0;
-			for (const [a, b] of match.sets) {
-				if (a >= 15 && a - b >= 2) setWon1++;
-				else if (b >= 15 && b - a >= 2) setWon2++;
+		const match = localMatches[matchIndex];
+		if (!match.sets[setIndex]) {
+			match.sets[setIndex] = { team1: 0, team2: 0 };
+		}
+		match.sets[setIndex][team] = num;
+	}
+
+	function validateAndSave(index: number) {
+		const match = localMatches[index];
+		let wins1 = 0;
+		let wins2 = 0;
+
+		for (const s of match.sets) {
+			if (s.team1 >= 15 || s.team2 >= 15) {
+				if (s.team1 === 15 && s.team2 < 14) wins1++;
+				else if (s.team2 === 15 && s.team1 < 14) wins2++;
+				else if (s.team1 === 16 && s.team2 === 15) wins1++;
+				else if (s.team2 === 16 && s.team1 === 15) wins2++;
 			}
+		}
 
-			match.winner =
-				setWon1 === 2 ? match.team1 :
-				setWon2 === 2 ? match.team2 :
-				null;
+		match.winner = wins1 >= 2 ? match.team1 : wins2 >= 2 ? match.team2 : null;
 
-			return [...all];
+		// aggiorna lo store globale
+		matches.update(all => {
+			all[index] = match;
+			return all;
 		});
+		alert('Risultato salvato!');
 	}
 </script>
 
@@ -57,24 +52,37 @@
 <section>
 	<h1>Calendario Partite</h1>
 
-	{#if $matches.length === 0}
-		<p>Attendi che vengano registrate almeno due squadre.</p>
+	{#if localMatches.length === 0}
+		<p>Attendi che vengano generate le partite.</p>
 	{:else}
-		{#each $matches as match, i}
-			<div class="match-card">
-				<h2>Partita {i + 1}: {match.team1 vs {match.team2}</h2>
-				
-				{#each [0, 1, 2] as setIdx}
-					<div class="set">
-						Set {setIdx + 1}:
-						<input type="number" min="0" max="15" value={match.sets[setIdx]?.[0] ?? ''} on:input={(e) => updateSet(i, setIdx, 'A', +e.target.value)} />
-						vs
-						<input type="number" min="0" max=15" value={match.sets[setIdx]?.[1] ?? ''} on:input={(e) => updateSet(i, setIdx, 'B', +e.target.value)} />
-					</div>
-				{/each}
+		{#each localMatches as match, i}
+			<div class="match">
+				<h2>Partita {i + 1}: {match.team1} vs {match.team2}</h2>
 
 				{#if match.winner}
-					<p class="winner">🏆 Vincitore: {match.winner}</p>
+					<p class="winner">Vincitore: {match.winner}</p>
+				{:else}
+					{#each Array(3) as _, s}
+						<div class="set">
+							<label>Set {s + 1}</label>
+							<input
+								type="number"
+								min="0"
+								max="16"
+								placeholder={match.team1}
+								on:input={(e) => updateSet(i, s, 'team1', e.target.value)}
+							/>
+							<input
+								type="number"
+								min="0"
+								max="16"
+								placeholder={match.team2}
+								on:input={(e) => updateSet(i, s, 'team2', e.target.value)}
+							/>
+						</div>
+					{/each}
+
+					<button on:click={() => validateAndSave(i)}>Salva Risultato</button>
 				{/if}
 			</div>
 		{/each}
@@ -83,7 +91,7 @@
 
 <style>
 	section {
-		max-width: 800px;
+		max-width: 700px;
 		margin: 2rem auto;
 		padding: 2rem;
 		background-color: #f9f9f9;
@@ -97,30 +105,45 @@
 		font-size: 2.5rem;
 	}
 
-	.match-card {
+	.match {
 		margin-bottom: 2rem;
 		padding: 1rem;
-		border: 1px solid #ccc;
+		border: 1px solid #ddd;
 		border-radius: 12px;
-		background-color: #fff;
+		background: #fff;
 	}
 
 	.set {
-		margin-top: 0.5rem;
-		font-weight: bold;
+		display: flex;
+		gap: 1rem;
+		align-items: center;
+		margin: 0.5rem 0;
 	}
 
 	input {
-		width: 60px;
-		margin: 0 0.5rem;
-		padding: 0.25rem;
+		width: 70px;
+		padding: 0.5rem;
+		font-size: 1rem;
 		text-align: center;
-		border-radius: 6px;
+		border-radius: 8px;
 		border: 1px solid #ccc;
 	}
 
-	.winner {
+	button {
 		margin-top: 1rem;
+		padding: 0.5rem 1rem;
+		background: #0077ff;
+		color: white;
+		border: none;
+		border-radius: 8px;
+		cursor: pointer;
+	}
+
+	button:hover {
+		background: #005ddd;
+	}
+
+	.winner {
 		font-weight: bold;
 		color: green;
 	}
