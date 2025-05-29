@@ -9,8 +9,8 @@
 		for (let i = 0; i < teams.length; i++) {
 			for (let j = i + 1; j < teams.length; j++) {
 				res.push({
-					teamA: teams[i],
-					teamB: teams[j],
+					team1: teams[i],
+					team2: teams[j],
 					sets: [],
 					winner: null
 				});
@@ -30,19 +30,19 @@
 		matches.update(all => {
 			const match = all[matchIndex];
 			if (!match.sets[setIndex]) match.sets[setIndex] = [0, 0];
-			match.sets[setIndex][team === 'A' ? 0 : 1] = value;
+			match.sets[setIndex][team === '1' ? 0 : 1] = value;
 
 			// Calcolo vincitore
 			let setWonA = 0;
 			let setWonB = 0;
 			for (const [a, b] of match.sets) {
-				if (a >= 15 && a - b >= 2) setWonA++;
-				else if (b >= 15 && b - a >= 2) setWonB++;
+				if (a >= 15 && a - b >= 2) setWon1++;
+				else if (b >= 15 && b - a >= 2) setWon2++;
 			}
 
 			match.winner =
-				setWonA === 2 ? match.team1 :
-				setWonB === 2 ? match.team2 :
+				setWon1 === 2 ? match.team1 :
+				setWon2 === 2 ? match.team2 :
 				null;
 
 			return [...all];
@@ -67,9 +67,9 @@
 				{#each [0, 1, 2] as setIdx}
 					<div class="set">
 						Set {setIdx + 1}:
-						<input type="number" min="0" max="30" value={match.sets[setIdx]?.[0] ?? ''} on:input={(e) => updateSet(i, setIdx, 'A', +e.target.value)} />
+						<input type="number" min="0" max="15" value={match.sets[setIdx]?.[0] ?? ''} on:input={(e) => updateSet(i, setIdx, 'A', +e.target.value)} />
 						vs
-						<input type="number" min="0" max="30" value={match.sets[setIdx]?.[1] ?? ''} on:input={(e) => updateSet(i, setIdx, 'B', +e.target.value)} />
+						<input type="number" min="0" max=15" value={match.sets[setIdx]?.[1] ?? ''} on:input={(e) => updateSet(i, setIdx, 'B', +e.target.value)} />
 					</div>
 				{/each}
 
