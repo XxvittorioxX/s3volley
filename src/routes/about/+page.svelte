@@ -87,7 +87,6 @@
 								/>
 								<br />
 							{/each}
-
 							<p><strong>Vincitore:</strong> {match.winner ?? 'Partita in corso'}</p>
 						</li>
 					{/each}
@@ -98,7 +97,7 @@
 				{/each}
 			{/if}
 			<hr />
-		{/each}
+		{/each}		
 	{/if}
 </section>
 
@@ -125,7 +124,7 @@
 	}
 
 	ul {
-		list-style: none;
+		list-style: none;																																																																																																																			
 		padding: 0;
 	}
 
