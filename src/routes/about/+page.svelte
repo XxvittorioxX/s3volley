@@ -5,43 +5,49 @@
 
 	let localMatches: Match[] = [];
 
-	onMount(() => {
-		localMatches = structuredClone(get(matches));
-	});
+	$: localMatches = get(matches);
 
-	function updateSet(matchIndex: number, setIndex: number, team: 'team1' | 'team2', value: string) {
-		const num = parseInt(value);
-		if (isNaN(num) || num < 0) return;
+	const categories = ['Under 10', 'Under 12', 'Under 14'];
 
-		const match = localMatches[matchIndex];
-		if (!match.sets[setIndex]) {
-			match.sets[setIndex] = { team1: 0, team2: 0 };
-		}
-		match.sets[setIndex][team] = num;
+	function updateSet(matchIndex: number, setIndex: number, field: 'team1' | 'team2', value: number) {
+		localMatches[matchIndex].sets[setIndex][field] = value;
+		matches.set(localMatches);
+		checkWinner(localMatches[matchIndex]);
 	}
 
-	function validateAndSave(index: number) {
-		const match = localMatches[index];
-		let wins1 = 0;
-		let wins2 = 0;
+	function checkWinner(match: Match) {
+		let team1Sets = 0;
+		let team2Sets = 0;
 
-		for (const s of match.sets) {
-			if (s.team1 >= 15 || s.team2 >= 15) {
-				if (s.team1 === 15 && s.team2 < 14) wins1++;
-				else if (s.team2 === 15 && s.team1 < 14) wins2++;
-				else if (s.team1 === 16 && s.team2 === 15) wins1++;
-				else if (s.team2 === 16 && s.team1 === 15) wins2++;
+		for (const set of match.sets) {
+			const set1 = set.team1;
+			const set2 = set.team2;
+
+			if (set1 >= 15 && set1 >= set2 + 1) team1Sets++;
+			else if (set2 >= 15 && set2 >= set1 + 1) team2Sets++;
+		}
+
+		if (team1Sets === 2) match.winner = match.team1;
+		else if (team2Sets === 2) match.winner = match.team2;
+		else match.winner = null;
+
+		matches.set([...localMatches]);
+	}
+
+	function getWinnersByCategory(category: string): string[] {
+		const matchResults = localMatches.filter(m => m.category === category && m.winner);
+		const count: Record<string, number> = {};
+
+		for (const m of matchResults) {
+			if (m.winner) {
+				count[m.winner] = (count[m.winner] || 0) + 1;
 			}
 		}
 
-		match.winner = wins1 >= 2 ? match.team1 : wins2 >= 2 ? match.team2 : null;
-
-		// aggiorna lo store globale
-		matches.update(all => {
-			all[index] = match;
-			return all;
-		});
-		alert('Risultato salvato!');
+		const max = Math.max(0, ...Object.values(count));
+		return Object.entries(count)
+			.filter(([_, val]) => val === max)
+			.map(([team]) => team);
 	}
 </script>
 
@@ -53,45 +59,52 @@
 	<h1>Calendario Partite</h1>
 
 	{#if localMatches.length === 0}
-		<p>Attendi che vengano generate le partite.</p>
+		<p>Attendi che vengano registrate almeno due squadre.</p>
 	{:else}
-		{#each localMatches as match, i}
-			<div class="match">
-				<h2>Partita {i + 1}: {match.team1} vs {match.team2}</h2>
+		{#each categories as category}
+			<h2>{category}</h2>
+			{#if localMatches.filter(m => m.category === category).length === 0}
+				<p>Nessuna partita per questa categoria.</p>
+			{:else}
+				<ul>
+					{#each localMatches.filter(m => m.category === category) as match, i}
+						<li style="margin-bottom: 1.5rem;">
+							<p><strong>Partita:</strong> {match.team1} vs {match.team2}</p>
 
-				{#if match.winner}
-					<p class="winner">Vincitore: {match.winner}</p>
-				{:else}
-					{#each Array(3) as _, s}
-						<div class="set">
-							<label>Set {s + 1}</label>
-							<input
-								type="number"
-								min="0"
-								max="16"
-								placeholder={match.team1}
-								on:input={(e) => updateSet(i, s, 'team1', e.target.value)}
-							/>
-							<input
-								type="number"
-								min="0"
-								max="16"
-								placeholder={match.team2}
-								on:input={(e) => updateSet(i, s, 'team2', e.target.value)}
-							/>
-						</div>
+							{#each [0, 1, 2] as setIndex}
+								<label>Set {setIndex + 1}:</label>
+								<input
+									type="number"
+									min="0"
+									bind:value={match.sets[setIndex].team1}
+									on:change={(e) => updateSet(i, setIndex, 'team1', +e.target.value)}
+								/> -
+								<input
+									type="number"
+									min="0"
+									bind:value={match.sets[setIndex].team2}
+									on:change={(e) => updateSet(i, setIndex, 'team2', +e.target.value)}
+								/>
+								<br />
+							{/each}
+
+							<p><strong>Vincitore:</strong> {match.winner ?? 'Partita in corso'}</p>
+						</li>
 					{/each}
-
-					<button on:click={() => validateAndSave(i)}>Salva Risultato</button>
-				{/if}
-			</div>
+				</ul>
+				<h3>🏆 Vincitore categoria {category}:</h3>
+				{#each getWinnersByCategory(category) as team}
+					<p>{team}</p>
+				{/each}
+			{/if}
+			<hr />
 		{/each}
 	{/if}
 </section>
 
 <style>
 	section {
-		max-width: 700px;
+		max-width: 800px;
 		margin: 2rem auto;
 		padding: 2rem;
 		background-color: #f9f9f9;
@@ -105,46 +118,21 @@
 		font-size: 2.5rem;
 	}
 
-	.match {
-		margin-bottom: 2rem;
-		padding: 1rem;
-		border: 1px solid #ddd;
-		border-radius: 12px;
-		background: #fff;
-	}
-
-	.set {
-		display: flex;
-		gap: 1rem;
-		align-items: center;
-		margin: 0.5rem 0;
-	}
-
 	input {
-		width: 70px;
-		padding: 0.5rem;
-		font-size: 1rem;
+		width: 3rem;
 		text-align: center;
+		margin: 0 0.25rem;
+	}
+
+	ul {
+		list-style: none;
+		padding: 0;
+	}
+
+	li {
+		padding: 1rem;
+		background-color: #e6f0ff;
 		border-radius: 8px;
-		border: 1px solid #ccc;
-	}
-
-	button {
-		margin-top: 1rem;
-		padding: 0.5rem 1rem;
-		background: #0077ff;
-		color: white;
-		border: none;
-		border-radius: 8px;
-		cursor: pointer;
-	}
-
-	button:hover {
-		background: #005ddd;
-	}
-
-	.winner {
-		font-weight: bold;
-		color: green;
+		margin-bottom: 1rem;
 	}
 </style>
