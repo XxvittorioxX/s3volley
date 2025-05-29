@@ -26,7 +26,7 @@
 		}
 	});
 
-	function updateSet(matchIndex: number, setIndex: number, team: 'A' | 'B', value: number) {
+	function updateSet(matchIndex: number, setIndex: number, team: '1' | '2', value: number) {
 		matches.update(all => {
 			const match = all[matchIndex];
 			if (!match.sets[setIndex]) match.sets[setIndex] = [0, 0];
@@ -41,8 +41,8 @@
 			}
 
 			match.winner =
-				setWonA === 2 ? match.teamA :
-				setWonB === 2 ? match.teamB :
+				setWonA === 2 ? match.team1 :
+				setWonB === 2 ? match.team2 :
 				null;
 
 			return [...all];
@@ -62,7 +62,7 @@
 	{:else}
 		{#each $matches as match, i}
 			<div class="match-card">
-				<h2>Partita {i + 1}: {match.teamA} vs {match.teamB}</h2>
+				<h2>Partita {i + 1}: {match.team1 vs {match.team2}</h2>
 				
 				{#each [0, 1, 2] as setIdx}
 					<div class="set">
