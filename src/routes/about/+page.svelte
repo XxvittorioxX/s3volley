@@ -4,9 +4,9 @@
 	import { onMount } from 'svelte';
 
 	let teams: Team[] = [];
-	let matches = [];
+	let matches: any[] = [];
 	let started = false;
-	let winner = null;
+	let winner: { teamName: any; } | null = null;
 
 	onMount(() => teams = get(registeredTeams));
 
@@ -43,7 +43,7 @@
 		winner = null;
 	}
 
-	function setWinner(id, w) {
+	function setWinner(id: any, w: any) {
 		matches = matches.map(m => m.id === id ? {...m, w} : m);
 		
 		const match = matches.find(m => m.id === id);

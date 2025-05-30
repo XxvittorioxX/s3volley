@@ -149,6 +149,6 @@ nav a {
 }
 
 nav a:hover {
-	color: #fbfcfd;
+	color: #006eff;
 }
 </style>
