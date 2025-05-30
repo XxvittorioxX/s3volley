@@ -11,7 +11,6 @@
 
 	type Group = {
 		name: string;
-		category: string;
 		teams: string[];
 		matches: Match[];
 	};
@@ -38,26 +37,20 @@
 	}
 
 	onMount(() => {
-		const allTeams = get(registeredTeams);
-		const categories = ["Under 10", "Under 12", "Under 14"];
-		
-		for (const category of categories) {
-			const categoryTeams = shuffleArray(
-				allTeams.filter(t => t.category === category).map(t => t.teamName)
-			);
+		const allTeams = shuffleArray(get(registeredTeams).map(t => t.teamName));
+		const groupSize = 4;
+		const groupCount = Math.floor(allTeams.length / groupSize);
 
-			const groupSize = 4;
-			const groupCount = Math.floor(categoryTeams.length / groupSize);
+		groups = [];
 
-			for (let i = 0; i < groupCount; i++) {
-				const groupTeams = categoryTeams.slice(i * groupSize, (i + 1) * groupSize);
-				groups.push({
-					name: `Gruppo ${String.fromCharCode(65 + i)} (${category})`,
-					category,
-					teams: groupTeams,
-					matches: generateGroupMatches(groupTeams)
-				});
-			}
+		for (let i = 0; i < groupCount; i++) {
+			const groupTeams = allTeams.slice(i * groupSize, (i + 1) * groupSize);
+			const group: Group = {
+				name: `Gruppo ${String.fromCharCode(65 + i)}`,
+				teams: groupTeams,
+				matches: generateGroupMatches(groupTeams)
+			};
+			groups.push(group);
 		}
 	});
 
@@ -119,7 +112,7 @@
 	}
 </style>
 
-<h1 style="margin-top: 2rem;">Fase a Gironi per Categoria</h1>
+<h1 style="margin-top: 2rem;">Fase a Gironi</h1>
 
 <main>
 	{#each groups as group, i}
