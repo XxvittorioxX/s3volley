@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { registeredTeams } from '$lib/stores/teams';
+
 	type Match = {
 		round: number;
 		team1: string;
@@ -9,6 +10,7 @@
 		winner: string | null;
 	};
 
+	let categoryMatches: Record<string, Match[][]> = {};
 	let finalMatches: Match[][] = [];
 
 	function shuffleArray<T>(array: T[]): T[] {
@@ -59,49 +61,87 @@
 		for (const cat of categories) {
 			const teams = allTeams.filter(t => t.category === cat).map(t => t.teamName);
 			if (teams.length >= 2) {
-				const match = generateKnockoutMatches(teams);
-				const lastRound = match[match.length - 1];
+				const matches = generateKnockoutMatches(teams);
+				categoryMatches[cat] = matches;
+
+				const lastRound = matches[matches.length - 1];
 				if (lastRound?.[0]?.winner) winnersByCategory.push(lastRound[0].winner);
 			}
 		}
+
 		if (winnersByCategory.length >= 2) {
 			finalMatches = generateKnockoutMatches(winnersByCategory);
 		}
 	});
 
-	function setFinalWinner(roundIdx: number, matchIdx: number, winner: string) {
-		const match = finalMatches[roundIdx][matchIdx];
+	function setWinner(match: Match, winner: string) {
 		match.winner = winner;
-		const nextTeams: string[] = [];
-		for (const round of finalMatches) {
-			for (const m of round) {
-				if (m.winner && m.winner !== 'BYE') nextTeams.push(m.winner);
-			}
+	}
+
+	function setFinalWinner(roundIdx: number, matchIdx: number, winner: string) {
+		finalMatches[roundIdx][matchIdx].winner = winner;
+
+		// rigenera solo i round successivi
+		let nextTeams: string[] = [];
+		for (let i = 0; i <= roundIdx; i++) {
+			nextTeams = finalMatches[i].map(m => m.winner).filter(w => w && w !== 'BYE') as string[];
 		}
-		finalMatches = generateKnockoutMatches(nextTeams);
+
+		for (let i = roundIdx + 1; i < finalMatches.length; i++) {
+			const newRound = generateKnockoutMatches(nextTeams);
+			finalMatches.splice(i);
+			finalMatches.push(...newRound.slice(i));
+			break;
+		}
 	}
 </script>
 
 <section>
-	<h1>Finale del Torneo tra i Vincitori dei Gironi</h1>
-	{#each finalMatches as round, i}
-		<h2>Round {i + 1}</h2>
-		<ul>
-			{#each round as match, j}
-				<li>
-					{match.team1} vs {match.team2}<br />
-					{#if !match.winner || match.winner === 'BYE'}
-						<button on:click={() => setFinalWinner(i, j, match.team1)}>{match.team1} vince</button>
-						{#if match.team2 !== 'BYE'}
-							<button on:click={() => setFinalWinner(i, j, match.team2)}>{match.team2} vince</button>
+	<h1>Partite per Categoria</h1>
+	{#each Object.entries(categoryMatches) as [category, rounds]}
+		<h2>{category}</h2>
+		{#each rounds as round, i}
+			<h3>Round {i + 1}</h3>
+			<ul>
+				{#each round as match}
+					<li>
+						{match.team1} vs {match.team2}<br />
+						{#if !match.winner || match.winner === 'BYE'}
+							<button on:click={() => setWinner(match, match.team1)}>{match.team1} vince</button>
+							{#if match.team2 !== 'BYE'}
+								<button on:click={() => setWinner(match, match.team2)}>{match.team2} vince</button>
+							{/if}
+						{:else}
+							<p><strong>Vincitore: {match.winner}</strong></p>
 						{/if}
-					{:else}
-						<p><strong>Vincitore: {match.winner}</strong></p>
-					{/if}
-				</li>
-			{/each}
-		</ul>
+					</li>
+				{/each}
+			</ul>
+		{/each}
 	{/each}
+
+	{#if finalMatches.length > 0}
+		<h1>Finale del Torneo tra i Vincitori dei Gironi</h1>
+		{#each finalMatches as round, i}
+			<h2>Round {i + 1}</h2>
+			<ul>
+				{#each round as match, j}
+					<li>
+						{match.team1} vs {match.team2}<br />
+						{#if !match.winner || match.winner === 'BYE'}
+							<button on:click={() => setFinalWinner(i, j, match.team1)}>{match.team1} vince</button>
+							{#if match.team2 !== 'BYE'}
+								<button on:click={() => setFinalWinner(i, j, match.team2)}>{match.team2} vince</button>
+							{/if}
+						{:else}
+							<p><strong>Vincitore: {match.winner}</strong></p>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{/each}
+	{/if}
+
 	{#if finalMatches[finalMatches.length - 1]?.[0]?.winner}
 		<h2>🏆 Vincitore Finale Assoluto: {finalMatches[finalMatches.length - 1][0].winner}</h2>
 	{/if}
@@ -115,9 +155,8 @@
 		background: #f0f8ff;
 		border-radius: 12px;
 	}
-	h1 {
+	h1, h2, h3 {
 		text-align: center;
-		margin-bottom: 1rem;
 	}
 	ul {
 		list-style: none;
@@ -135,10 +174,4 @@
 		background: #006eff;
 		color: white;
 		border: none;
-		border-radius: 6px;
-		cursor: pointer;
-	}
-	button:hover {
-		background: #0051c3;
-	}
-</style>
+		border-radius
