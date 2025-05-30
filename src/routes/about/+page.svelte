@@ -174,4 +174,10 @@
 		background: #006eff;
 		color: white;
 		border: none;
-		border-radius
+		border-radius: 6px;
+		cursor: pointer;
+	}
+	button:hover {
+		background: #0051c3;
+	}
+</style>
