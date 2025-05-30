@@ -5,11 +5,12 @@
 	let { children } = $props();
 </script>
 
-<<div class="container">
-  <h1>Torneo Eliminazione Diretta</h1>
-  <button on:click={startTournament} class="btn btn-success">Inizia Torneo</button>
+<div class="app">
+	<Header />
 
-
+	<main>
+		{@render children()}
+	</main>
 
 	<footer><p>web masters:vittorio serafini,carlo fioretti</p><p>email:vittorio.serafini@divini.org,carlo.fioretti@divini.org</p><p>telefono:6987432105,5869342134</p>
 	</footer>
