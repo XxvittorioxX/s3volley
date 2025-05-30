@@ -1,95 +1,153 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import logo from '$lib/images/logo-azienda.svg'; // Sostituisci con il tuo logo
+	import { page } from '$app/state';
+	import logo from '$lib/images/svelte-logo.svg';
+	import github from '$lib/images/github.svg';
 </script>
 
 <header>
-	<div class="logo">
-		<a href="/">
-			<img src={logo} alt="Logo Azienda" />
-			<span>Torneo Volley</span>
+	<div class="corner">
+		<a href="https://svelte.dev/docs/kit">
+			<img src={logo} alt="SvelteKit" />
+
 		</a>
 	</div>
 
 	<nav>
+		<svg viewBox="0 0 2 3" aria-hidden="true">
+			<path d="M0,0 L1,2 C1.5,3 1.5,3 2,3 L2,0 Z" />
+		</svg>
 		<ul>
-			<li class:selected={page.url.pathname === '/'}>
+			<li aria-current={page.url.pathname === '/' ? 'page' : undefined}>
 				<a href="/">Home</a>
 			</li>
-			<li class:selected={page.url.pathname.startsWith('/calendario')}>
-				<a href="/calendario">Calendario</a>
+			<li aria-current={page.url.pathname === '/about' ? 'page' : undefined}>
+				<a href="/about">Gironi</a>
 			</li>
-			<li class:selected={page.url.pathname.startsWith('/classifica')}>
-				<a href="/classifica">Classifica</a>
-			</li>
-			<li class:selected={page.url.pathname.startsWith('/registrazioni')}>
-				<a href="/registrazioni">Registrazioni</a>
+			<li aria-current={page.url.pathname.startsWith('/registrazioni') ? 'page' : undefined}>
+				<a href="/registrazioni">Visualizza Squadre</a>
 			</li>
 		</ul>
+		<svg viewBox="0 0 2 3" aria-hidden="true">
+			<path d="M0,0 L0,3 C0.5,3 0.5,3 1,2 L2,0 Z" />
+		</svg>
 	</nav>
+
+	<div class="corner">
+		<a href="https://github.com/sveltejs/kit">
+			<img src={github} alt="GitHub" />
+		</a>
+	</div>
 </header>
 
 <style>
-	:global(body) {
-		margin: 0;
-		font-family: 'Segoe UI', sans-serif;
-		background-color: #f4f6f8;
-	}
-
 	header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 1rem 2rem;
-		background-color: #ffffff;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-		position: sticky;
-		top: 0;
-		z-index: 100;
-	}
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1rem 2rem;
+	background-color: #ffffff;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	position: sticky;
+	top: 0;
+	z-index: 100;
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
 
-	.logo a {
-		display: flex;
-		align-items: center;
-		text-decoration: none;
-		color: #003366;
-		font-weight: bold;
-		font-size: 1.3rem;
-	}
+.corner {
+	width: 3em;
+	height: 3em;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
 
-	.logo img {
-		height: 40px;
-		margin-right: 0.5rem;
-	}
+.corner a {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+}
 
-	nav ul {
-		display: flex;
-		gap: 1.5rem;
-		list-style: none;
-		padding: 0;
-		margin: 0;
-	}
+.corner img {
+	width: 2em;
+	height: 2em;
+	object-fit: contain;
+	filter: drop-shadow(0 0 2px rgba(0,0,0,0.15));
+	transition: filter 0.3s ease;
+}
 
-	nav a {
-		text-decoration: none;
-		color: #333;
-		font-weight: 600;
-		position: relative;
-		transition: color 0.2s;
-	}
+.corner img:hover {
+	filter: drop-shadow(0 0 6px #006eff);
+}
 
-	nav a:hover {
-		color: #006eff;
-	}
+nav {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background: rgba(255, 255, 255, 0.9);
+	backdrop-filter: saturate(180%) blur(8px);
+	border-radius: 10px;
+	padding: 0 1rem;
+	box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+	gap: 0.75rem;
+}
 
-	li.selected a::after {
-		content: '';
-		position: absolute;
-		left: 0;
-		bottom: -6px;
-		width: 100%;
-		height: 3px;
-		background-color: #006eff;
-		border-radius: 2px;
-	}
-</style>
+svg {
+	width: 2em;
+	height: 3em;
+	display: block;
+	fill: #006eff;
+}
+
+path {
+	fill: #006eff;
+}
+
+ul {
+	position: relative;
+	padding: 0 0.5rem;
+	margin: 0;
+	height: 3em;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	list-style: none;
+}
+
+li {
+	position: relative;
+	height: 100%;
+	margin: 0 0.75rem;
+}
+
+li[aria-current='page']::before {
+	--size: 8px;
+	content: '';
+	width: 0;
+	height: 0;
+	position: absolute;
+	top: 0;
+	left: calc(50% - var(--size));
+	border: var(--size) solid transparent;
+	border-top: var(--size) solid #006eff;
+	transition: border-top-color 0.3s ease;
+}
+
+nav a {
+	display: flex;
+	height: 100%;
+	align-items: center;
+	padding: 0 0.75rem;
+	color: #333;
+	font-weight: 600;
+	font-size: 0.9rem;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	text-decoration: none;
+	transition: color 0.3s ease;
+}
+
+nav a:hover {
+	color: #006eff;
+}
