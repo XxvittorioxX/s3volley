@@ -1,149 +1,143 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
-	import { registeredTeams, type Team } from '$lib/stores/teams';
+	import { registeredTeams } from '$lib/stores/teams';
 
 	type Match = {
-		round: number;
 		team1: string;
 		team2: string;
 		winner: string | null;
 	};
 
-	let matchesByCategory: Record<string, Match[][]> = {
-		"Under 10": [],
-		"Under 12": [],
-		"Under 14": []
+	type Group = {
+		name: string;
+		category: string;
+		teams: string[];
+		matches: Match[];
 	};
 
-	function generateEliminationMatches(teams: string[]): Match[][] {
-		const rounds: Match[][] = [];
-		let currentTeams = [...teams];
+	let groups: Group[] = [];
 
-		// Shuffle for randomness
-		for (let i = currentTeams.length - 1; i > 0; i--) {
+	function shuffleArray<T>(array: T[]): T[] {
+		const arr = [...array];
+		for (let i = arr.length - 1; i > 0; i--) {
 			const j = Math.floor(Math.random() * (i + 1));
-			[currentTeams[i], currentTeams[j]] = [currentTeams[j], currentTeams[i]];
+			[arr[i], arr[j]] = [arr[j], arr[i]];
 		}
+		return arr;
+	}
 
-		let round = 1;
-		while (currentTeams.length > 1) {
-			const roundMatches: Match[] = [];
-			for (let i = 0; i < currentTeams.length; i += 2) {
-				if (i + 1 < currentTeams.length) {
-					roundMatches.push({
-						round,
-						team1: currentTeams[i],
-						team2: currentTeams[i + 1],
-						winner: null
-					});
-				} else {
-					// Automatic win if odd number
-					roundMatches.push({
-						round,
-						team1: currentTeams[i],
-						team2: 'BYE',
-						winner: currentTeams[i]
-					});
-				}
+	function generateGroupMatches(teams: string[]): Match[] {
+		const matches: Match[] = [];
+		for (let i = 0; i < teams.length; i++) {
+			for (let j = i + 1; j < teams.length; j++) {
+				matches.push({ team1: teams[i], team2: teams[j], winner: null });
 			}
-			rounds.push(roundMatches);
-			currentTeams = roundMatches.map(m => m.winner).filter(w => w && w !== 'BYE') as string[];
-			round++;
 		}
-		return rounds;
+		return matches;
 	}
 
 	onMount(() => {
 		const allTeams = get(registeredTeams);
 		const categories = ["Under 10", "Under 12", "Under 14"];
+		
 		for (const category of categories) {
-			const teamsInCategory = allTeams.filter(t => t.category === category).map(t => t.teamName);
-			if (teamsInCategory.length >= 2) {
-				matchesByCategory[category] = generateEliminationMatches(teamsInCategory);
+			const categoryTeams = shuffleArray(
+				allTeams.filter(t => t.category === category).map(t => t.teamName)
+			);
+
+			const groupSize = 4;
+			const groupCount = Math.floor(categoryTeams.length / groupSize);
+
+			for (let i = 0; i < groupCount; i++) {
+				const groupTeams = categoryTeams.slice(i * groupSize, (i + 1) * groupSize);
+				groups.push({
+					name: `Gruppo ${String.fromCharCode(65 + i)} (${category})`,
+					category,
+					teams: groupTeams,
+					matches: generateGroupMatches(groupTeams)
+				});
 			}
 		}
 	});
 
-	function setWinner(category: string, roundIdx: number, matchIdx: number, winner: string) {
-		const match = matchesByCategory[category][roundIdx][matchIdx];
-		match.winner = winner;
-
-		// Recalculate next rounds
-		const teams: string[] = [];
-		for (const round of matchesByCategory[category]) {
-			for (const m of round) {
-				if (m.winner && m.winner !== 'BYE') teams.push(m.winner);
-			}
-		}
-		matchesByCategory[category] = generateEliminationMatches(teams);
+	function setWinner(groupIndex: number, matchIndex: number, winner: string) {
+		groups[groupIndex].matches[matchIndex].winner = winner;
 	}
 </script>
 
-<section>
-	<h1>Partite a Eliminazione Diretta</h1>
-
-	{#each Object.entries(matchesByCategory) as [category, rounds]}
-		{#if rounds.length > 0}
-			<h2>{category}</h2>
-			{#each rounds as round, i}
-				<h3>Round {i + 1}</h3>
-				<ul>
-					{#each round as match, j}
-						<li>
-							{match.team1} vs {match.team2} <br />
-							{#if !match.winner || match.winner === 'BYE'}
-								<button on:click={() => setWinner(category, i, j, match.team1)}>{match.team1} vince</button>
-								{#if match.team2 !== 'BYE'}
-									<button on:click={() => setWinner(category, i, j, match.team2)}>{match.team2} vince</button>
-								{/if}
-							{:else}
-								<p><strong>Vincitore: {match.winner}</strong></p>
-							{/if}
-						</li>
-					{/each}
-				</ul>
-			{/each}
-
-			{#if rounds[rounds.length - 1]?.length === 1 && rounds[rounds.length - 1][0].winner}
-				<h3>🏆 Vincitore Finale {category}: {rounds[rounds.length - 1][0].winner}</h3>
-			{/if}
-		{/if}
-	{/each}
-</section>
-
 <style>
-	section {
-		max-width: 900px;
-		margin: auto;
-		padding: 2rem;
-		background: #f0f8ff;
-		border-radius: 12px;
-	}
-	h1 {
-		text-align: center;
-		margin-bottom: 2rem;
-	}
-	ul {
-		list-style: none;
+	:global(*) {
+		margin: 0;
 		padding: 0;
+		box-sizing: border-box;
 	}
-	li {
-		margin-bottom: 1rem;
-		padding: 0.5rem;
+	:global(body) {
+		font-family: sans-serif;
+		background: #f9f9f9;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+	main {
+		max-width: 1000px;
+		width: 100%;
+		padding: 2rem;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2rem;
+		justify-content: center;
+	}
+	.group {
 		background: #e6f0ff;
+		padding: 1rem;
+		border-radius: 12px;
+		width: 300px;
+	}
+	h2 {
+		margin-bottom: 1rem;
+		text-align: center;
+	}
+	.match {
+		margin-bottom: 0.8rem;
+		padding: 0.5rem;
+		background: #fff;
 		border-radius: 8px;
 	}
 	button {
-		margin: 0.5rem;
-		padding: 0.4rem 1rem;
+		margin: 0.2rem;
+		padding: 0.3rem 0.6rem;
 		background: #006eff;
 		color: white;
 		border: none;
 		border-radius: 6px;
 		cursor: pointer;
+		font-size: 0.8rem;
 	}
 	button:hover {
-		background: #0051c3;
+		background: #004fc1;
 	}
 </style>
+
+<h1 style="margin-top: 2rem;">Fase a Gironi per Categoria</h1>
+
+<main>
+	{#each groups as group, i}
+		<div class="group">
+			<h2>{group.name}</h2>
+			{#each group.matches as match, j}
+				<div class="match">
+					{match.team1} vs {match.team2}
+					{#if !match.winner}
+						<div>
+							<button on:click={() => setWinner(i, j, match.team1)}>{match.team1} vince</button>
+							<button on:click={() => setWinner(i, j, match.team2)}>{match.team2} vince</button>
+						</div>
+					{:else}
+						<p><strong>Vincitore: {match.winner}</strong></p>
+					{/if}
+				</div>
+			{/each}
+		</div>
+	{/each}
+</main>
