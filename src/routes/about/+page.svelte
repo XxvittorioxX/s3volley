@@ -4,172 +4,160 @@
 	import { registeredTeams } from '$lib/stores/teams';
 
 	type Match = {
-		round: number;
 		team1: string;
 		team2: string;
 		winner: string | null;
 	};
 
-	let categoryMatches: Record<string, Match[][]> = {};
-	let finalMatches: Match[][] = [];
+	type Group = {
+		name: string;
+		category: string;
+		teams: string[];
+		matches: Match[];
+	};
+
+	let groups: Group[] = [];
+	let finalMatch: { team1: string; team2: string; winner: string | null } | null = null;
 
 	function shuffleArray<T>(array: T[]): T[] {
-		let shuffled = [...array];
-		for (let i = shuffled.length - 1; i > 0; i--) {
+		const arr = [...array];
+		for (let i = arr.length - 1; i > 0; i--) {
 			const j = Math.floor(Math.random() * (i + 1));
-			[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+			[arr[i], arr[j]] = [arr[j], arr[i]];
 		}
-		return shuffled;
+		return arr;
 	}
 
-	function generateKnockoutMatches(teams: string[]): Match[][] {
-		const rounds: Match[][] = [];
-		let currentTeams = shuffleArray(teams);
-		let round = 1;
-
-		while (currentTeams.length > 1) {
-			const roundMatches: Match[] = [];
-			for (let i = 0; i < currentTeams.length; i += 2) {
-				if (i + 1 < currentTeams.length) {
-					roundMatches.push({
-						round,
-						team1: currentTeams[i],
-						team2: currentTeams[i + 1],
-						winner: null
-					});
-				} else {
-					roundMatches.push({
-						round,
-						team1: currentTeams[i],
-						team2: 'BYE',
-						winner: currentTeams[i]
-					});
-				}
+	function generateGroupMatches(teams: string[]): Match[] {
+		const matches: Match[] = [];
+		for (let i = 0; i < teams.length; i++) {
+			for (let j = i + 1; j < teams.length; j++) {
+				matches.push({ team1: teams[i], team2: teams[j], winner: null });
 			}
-			rounds.push(roundMatches);
-			currentTeams = roundMatches.map(m => m.winner).filter(w => w && w !== 'BYE') as string[];
-			round++;
 		}
-
-		return rounds;
+		return matches;
 	}
 
 	onMount(() => {
 		const allTeams = get(registeredTeams);
-		const winnersByCategory: string[] = [];
 		const categories = ['Under 10', 'Under 12', 'Under 14'];
-		for (const cat of categories) {
-			const teams = allTeams.filter(t => t.category === cat).map(t => t.teamName);
-			if (teams.length >= 2) {
-				const matches = generateKnockoutMatches(teams);
-				categoryMatches[cat] = matches;
+		groups = [];
 
-				const lastRound = matches[matches.length - 1];
-				if (lastRound?.[0]?.winner) winnersByCategory.push(lastRound[0].winner);
+		for (const category of categories) {
+			const teamsInCat = shuffleArray(allTeams.filter(t => t.category === category).map(t => t.teamName));
+			if (teamsInCat.length >= 2) {
+				const group: Group = {
+					name: `Girone ${category}`,
+					category,
+					teams: teamsInCat,
+					matches: generateGroupMatches(teamsInCat)
+				};
+				groups.push(group);
 			}
-		}
-
-		if (winnersByCategory.length >= 2) {
-			finalMatches = generateKnockoutMatches(winnersByCategory);
 		}
 	});
 
-	function setWinner(match: Match, winner: string) {
-		match.winner = winner;
+	function setWinner(groupIndex: number, matchIndex: number, winner: string) {
+		groups[groupIndex].matches[matchIndex].winner = winner;
 	}
 
-	function setFinalWinner(roundIdx: number, matchIdx: number, winner: string) {
-		finalMatches[roundIdx][matchIdx].winner = winner;
-
-		// rigenera solo i round successivi
-		let nextTeams: string[] = [];
-		for (let i = 0; i <= roundIdx; i++) {
-			nextTeams = finalMatches[i].map(m => m.winner).filter(w => w && w !== 'BYE') as string[];
+	function calculateGroupWinner(group: Group): string | null {
+		const scoreMap: Record<string, number> = {};
+		for (const team of group.teams) {
+			scoreMap[team] = 0;
 		}
-
-		for (let i = roundIdx + 1; i < finalMatches.length; i++) {
-			const newRound = generateKnockoutMatches(nextTeams);
-			finalMatches.splice(i);
-			finalMatches.push(...newRound.slice(i));
-			break;
+		for (const match of group.matches) {
+			if (match.winner) scoreMap[match.winner]++;
 		}
+		const sorted = Object.entries(scoreMap).sort((a, b) => b[1] - a[1]);
+		return sorted[0][1] > 0 ? sorted[0][0] : null;
+	}
+
+	function generateFinalMatch() {
+		const winners: string[] = [];
+		for (const group of groups) {
+			const winner = calculateGroupWinner(group);
+			if (winner) winners.push(winner);
+		}
+		if (winners.length === 2) {
+			finalMatch = {
+				team1: winners[0],
+				team2: winners[1],
+				winner: null
+			};
+		} else {
+			finalMatch = null;
+		}
+	}
+
+	function setFinalWinner(winner: string) {
+		if (finalMatch) finalMatch.winner = winner;
 	}
 </script>
 
-<section>
-	<h1>Partite per Categoria</h1>
-	{#each Object.entries(categoryMatches) as [category, rounds]}
-		<h2>{category}</h2>
-		{#each rounds as round, i}
-			<h3>Round {i + 1}</h3>
-			<ul>
-				{#each round as match}
-					<li>
-						{match.team1} vs {match.team2}<br />
-						{#if !match.winner || match.winner === 'BYE'}
-							<button on:click={() => setWinner(match, match.team1)}>{match.team1} vince</button>
-							{#if match.team2 !== 'BYE'}
-								<button on:click={() => setWinner(match, match.team2)}>{match.team2} vince</button>
-							{/if}
-						{:else}
-							<p><strong>Vincitore: {match.winner}</strong></p>
-						{/if}
-					</li>
-				{/each}
-			</ul>
-		{/each}
+<main>
+	<h1 style="margin: 2rem 0;">Fase a Gironi per Categoria</h1>
+
+	{#each groups as group, i}
+		<div class="group">
+			<h2>{group.name}</h2>
+			{#each group.matches as match, j}
+				<div class="match">
+					{match.team1} vs {match.team2}
+					{#if !match.winner}
+						<div>
+							<button on:click={() => setWinner(i, j, match.team1)}>{match.team1} vince</button>
+							<button on:click={() => setWinner(i, j, match.team2)}>{match.team2} vince</button>
+						</div>
+					{:else}
+						<p><strong>Vincitore: {match.winner}</strong></p>
+					{/if}
+				</div>
+			{/each}
+		</div>
 	{/each}
 
-	{#if finalMatches.length > 0}
-		<h1>Finale del Torneo tra i Vincitori dei Gironi</h1>
-		{#each finalMatches as round, i}
-			<h2>Round {i + 1}</h2>
-			<ul>
-				{#each round as match, j}
-					<li>
-						{match.team1} vs {match.team2}<br />
-						{#if !match.winner || match.winner === 'BYE'}
-							<button on:click={() => setFinalWinner(i, j, match.team1)}>{match.team1} vince</button>
-							{#if match.team2 !== 'BYE'}
-								<button on:click={() => setFinalWinner(i, j, match.team2)}>{match.team2} vince</button>
-							{/if}
-						{:else}
-							<p><strong>Vincitore: {match.winner}</strong></p>
-						{/if}
-					</li>
-				{/each}
-			</ul>
-		{/each}
-	{/if}
+	<button on:click={generateFinalMatch} style="margin: 2rem; font-size: 1rem;">Genera Finale tra i Vincitori</button>
 
-	{#if finalMatches[finalMatches.length - 1]?.[0]?.winner}
-		<h2>🏆 Vincitore Finale Assoluto: {finalMatches[finalMatches.length - 1][0].winner}</h2>
+	{#if finalMatch}
+		<section class="final">
+			<h2>Finale tra Vincitori di Categoria</h2>
+			<p>{finalMatch.team1} vs {finalMatch.team2}</p>
+			{#if !finalMatch.winner}
+				<button on:click={() => setFinalWinner(finalMatch.team1)}>{finalMatch.team1} vince</button>
+				<button on:click={() => setFinalWinner(finalMatch.team2)}>{finalMatch.team2} vince</button>
+			{:else}
+				<h3>🏆 Vincitore Finale: {finalMatch.winner}</h3>
+			{/if}
+		</section>
 	{/if}
-</section>
+</main>
 
 <style>
-	section {
-		max-width: 800px;
+	main {
+		max-width: 1000px;
 		margin: auto;
 		padding: 2rem;
-		background: #f0f8ff;
-		border-radius: 12px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
 	}
-	h1, h2, h3 {
-		text-align: center;
-	}
-	ul {
-		list-style: none;
-		padding: 0;
-	}
-	li {
-		margin-bottom: 1rem;
-		padding: 0.5rem;
+	.group {
+		margin-bottom: 2rem;
+		padding: 1rem;
 		background: #e6f0ff;
+		border-radius: 12px;
+		width: 100%;
+		max-width: 500px;
+	}
+	.match {
+		background: #fff;
+		padding: 0.5rem;
 		border-radius: 8px;
+		margin-bottom: 0.5rem;
 	}
 	button {
-		margin: 0.5rem;
+		margin: 0.2rem;
 		padding: 0.4rem 1rem;
 		background: #006eff;
 		color: white;
@@ -178,6 +166,11 @@
 		cursor: pointer;
 	}
 	button:hover {
-		background: #0051c3;
+		background: #004fc1;
+	}
+	.final {
+		background: #dfffe0;
+		padding: 1rem;
+		border-radius: 12px;
 	}
 </style>
