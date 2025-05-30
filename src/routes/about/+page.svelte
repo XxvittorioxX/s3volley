@@ -1,7 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { get } from 'svelte/store';
-	import { registeredTeams } from '$lib/stores/teams';
+	import { writable } from 'svelte/store';
 
 	type Match = {
 		team1: string;
@@ -9,16 +7,10 @@
 		winner: string | null;
 	};
 
-	type Group = {
-		name: string;
-		category: string;
-		teams: string[];
-		matches: Match[];
-	};
+	// Store reattivo per le finali
+	const finals = writable<Match[]>([]);
 
-	let groups: Group[] = [];
-	let finalMatch: { team1: string; team2: string; winner: string | null } | null = null;
-
+	// Funzione per mischiare gli array
 	function shuffleArray<T>(array: T[]): T[] {
 		const arr = [...array];
 		for (let i = arr.length - 1; i > 0; i--) {
@@ -28,108 +20,96 @@
 		return arr;
 	}
 
-	function generateGroupMatches(teams: string[]): Match[] {
-		const matches: Match[] = [];
-		for (let i = 0; i < teams.length; i++) {
-			for (let j = i + 1; j < teams.length; j++) {
-				matches.push({ team1: teams[i], team2: teams[j], winner: null });
-			}
-		}
-		return matches;
-	}
+	// groups dovrebbe essere fornito (può essere prop o store)
+	export let groups: { matches: Match[] }[] = [];
 
-	onMount(() => {
-		const allTeams = get(registeredTeams);
-		const categories = ['Under 10', 'Under 12', 'Under 14'];
-		groups = [];
-
-		for (const category of categories) {
-			const teamsInCat = shuffleArray(allTeams.filter(t => t.category === category).map(t => t.teamName));
-			if (teamsInCat.length >= 2) {
-				const group: Group = {
-					name: `Girone ${category}`,
-					category,
-					teams: teamsInCat,
-					matches: generateGroupMatches(teamsInCat)
-				};
-				groups.push(group);
-			}
-		}
-	});
-
-	function setWinner(groupIndex: number, matchIndex: number, winner: string) {
-		groups[groupIndex].matches[matchIndex].winner = winner;
-	}
-
-	function calculateGroupWinner(group: Group): string | null {
-		const scoreMap: Record<string, number> = {};
-		for (const team of group.teams) {
-			scoreMap[team] = 0;
-		}
-		for (const match of group.matches) {
-			if (match.winner) scoreMap[match.winner]++;
-		}
-		const sorted = Object.entries(scoreMap).sort((a, b) => b[1] - a[1]);
-		return sorted[0][1] > 0 ? sorted[0][0] : null;
-	}
-
-	function generateFinalMatch() {
+	function generateFinals() {
 		const winners: string[] = [];
+
 		for (const group of groups) {
-			const winner = calculateGroupWinner(group);
-			if (winner) winners.push(winner);
+			const decidedMatch = group.matches.find(m => m.winner && m.winner !== 'BYE');
+			if (decidedMatch?.winner) {
+				winners.push(decidedMatch.winner);
+			}
 		}
-		if (winners.length === 2) {
-			finalMatch = {
-				team1: winners[0],
-				team2: winners[1],
+
+		const newFinals: Match[] = [];
+		const shuffled = shuffleArray(winners);
+
+		for (let i = 0; i < shuffled.length - 1; i += 2) {
+			newFinals.push({
+				team1: shuffled[i],
+				team2: shuffled[i + 1],
 				winner: null
-			};
-		} else {
-			finalMatch = null;
+			});
 		}
+
+		if (shuffled.length % 2 === 1) {
+			newFinals.push({
+				team1: shuffled[shuffled.length - 1],
+				team2: 'BYE',
+				winner: shuffled[shuffled.length - 1]
+			});
+		}
+
+		finals.set(newFinals);
 	}
 
-	function setFinalWinner(winner: string) {
-		if (finalMatch) finalMatch.winner = winner;
+	function setFinalWinner(matchIndex: number, winner: string) {
+		finals.update(current => {
+			current[matchIndex].winner = winner;
+
+			if (current.every(m => m.winner)) {
+				const nextRoundTeams = current.map(m => m.winner!).filter(w => w !== 'BYE');
+				if (nextRoundTeams.length > 1) {
+					const shuffled = shuffleArray(nextRoundTeams);
+					const nextRound: Match[] = [];
+
+					for (let i = 0; i < shuffled.length - 1; i += 2) {
+						nextRound.push({
+							team1: shuffled[i],
+							team2: shuffled[i + 1],
+							winner: null
+						});
+					}
+
+					if (shuffled.length % 2 === 1) {
+						nextRound.push({
+							team1: shuffled[shuffled.length - 1],
+							team2: 'BYE',
+							winner: shuffled[shuffled.length - 1]
+						});
+					}
+
+					return nextRound;
+				}
+			}
+
+			return [...current];
+		});
 	}
 </script>
 
 <main>
-	<h1 style="margin: 2rem 0;">Fase a Gironi per Categoria</h1>
+	<button on:click={generateFinals}>Genera finali tra vincitori</button>
 
-	{#each groups as group, i}
-		<div class="group">
-			<h2>{group.name}</h2>
-			{#each group.matches as match, j}
-				<div class="match">
+	{#if $finals.length > 0}
+		<h2>Fase Finale</h2>
+		<ul>
+			{#each $finals as match, i}
+				<li class="final">
 					{match.team1} vs {match.team2}
 					{#if !match.winner}
-						<div>
-							<button on:click={() => setWinner(i, j, match.team1)}>{match.team1} vince</button>
-							<button on:click={() => setWinner(i, j, match.team2)}>{match.team2} vince</button>
-						</div>
+						<button on:click={() => setFinalWinner(i, match.team1)}>{match.team1} vince</button>
+						{#if match.team2 !== 'BYE'}
+							<button on:click={() => setFinalWinner(i, match.team2)}>{match.team2} vince</button>
+						{/if}
 					{:else}
-						<p><strong>Vincitore: {match.winner}</strong></p>
+						<strong>Vincitore: {match.winner}</strong>
 					{/if}
-				</div>
+				</li>
 			{/each}
-		</div>
-	{/each}
-
-	<button on:click={generateFinalMatch} style="margin: 2rem; font-size: 1rem;">Genera Finale tra i Vincitori</button>
-
-	{#if finalMatch}
-		<section class="final">
-			<h2>Finale tra Vincitori di Categoria</h2>
-			<p>{finalMatch.team1} vs {finalMatch.team2}</p>
-			{#if !finalMatch.winner}
-				<button on:click={() => setFinalWinner(finalMatch.team1)}>{finalMatch.team1} vince</button>
-				<button on:click={() => setFinalWinner(finalMatch.team2)}>{finalMatch.team2} vince</button>
-			{:else}
-				<h3>🏆 Vincitore Finale: {finalMatch.winner}</h3>
-			{/if}
-		</section>
+		</ul>
 	{/if}
 </main>
 
@@ -141,20 +121,6 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-	}
-	.group {
-		margin-bottom: 2rem;
-		padding: 1rem;
-		background: #e6f0ff;
-		border-radius: 12px;
-		width: 100%;
-		max-width: 500px;
-	}
-	.match {
-		background: #fff;
-		padding: 0.5rem;
-		border-radius: 8px;
-		margin-bottom: 0.5rem;
 	}
 	button {
 		margin: 0.2rem;
@@ -172,5 +138,8 @@
 		background: #dfffe0;
 		padding: 1rem;
 		border-radius: 12px;
+		margin: 0.5rem 0;
+		width: 100%;
+		max-width: 500px;
 	}
 </style>

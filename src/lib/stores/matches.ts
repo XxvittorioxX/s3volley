@@ -31,14 +31,19 @@ function generateMatches(teams: Team[]): Match[] {
 		grouped.get(team.category)?.push(team);
 	}
 
-	// Crea un solo match per squadra per categoria (sorteggio casuale)
+	// Per ogni categoria, genera una sola partita casuale per squadra (senza ripetizioni)
 	for (const [category, teamList] of grouped.entries()) {
 		const shuffledTeams = shuffleArray(teamList);
-		for (let i = 0; i < shuffledTeams.length; i += 2) {
-			const team1 = shuffledTeams[i];
-			const team2 = shuffledTeams[i + 1];
+		const used = new Set<string>();
 
-			if (team2) {
+		for (let i = 0; i < shuffledTeams.length - 1; i++) {
+			const team1 = shuffledTeams[i];
+			if (used.has(team1.teamName)) continue;
+
+			for (let j = i + 1; j < shuffledTeams.length; j++) {
+				const team2 = shuffledTeams[j];
+				if (used.has(team2.teamName)) continue;
+
 				matches.push({
 					team1: team1.teamName,
 					team2: team2.teamName,
@@ -50,21 +55,16 @@ function generateMatches(teams: Team[]): Match[] {
 					],
 					winner: null
 				});
-			} else {
-				// Squadra senza avversario (BYE)
-				matches.push({
-					team1: team1.teamName,
-					team2: 'BYE',
-					category,
-					sets: [],
-					winner: team1.teamName
-				});
+				used.add(team1.teamName);
+				used.add(team2.teamName);
+				break;
 			}
 		}
 	}
 
 	return matches;
 }
+
 export const matches = writable<Match[]>([]);
 
 registeredTeams.subscribe(($teams) => {
