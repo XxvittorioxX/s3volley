@@ -1,95 +1,89 @@
+<script lang="ts">
+	import { registeredTeams, type Team } from '$lib/stores/teams';
+	import { derived } from 'svelte/store';
+
+	const gironi = derived(registeredTeams, ($teams) => {
+		const grouped: Record<string, Team[]> = {
+			'Under 10': [],
+			'Under 12': [],
+			'Under 14': []
+		};
+
+		for (const team of $teams) {
+			if (grouped[team.category]) {
+				grouped[team.category].push(team);
+			}
+		}
+
+		return grouped;
+	});
+</script>
+
 <svelte:head>
-	<title>How to play Sverdle</title>
-	<meta name="description" content="How to play Sverdle" />
+	<title>Torneo Volley S3</title>
 </svelte:head>
 
-<div class="text-column">
-	<h1>How to play Sverdle</h1>
+<section>
+	<h1>Torneo Volley S3 - Gironi</h1>
 
-	<p>
-		Sverdle is a clone of <a href="https://www.nytimes.com/games/wordle/index.html">Wordle</a>, the
-		word guessing game. To play, enter a five-letter English word. For example:
-	</p>
-
-	<div class="example">
-		<span class="close">r</span>
-		<span class="missing">i</span>
-		<span class="close">t</span>
-		<span class="missing">z</span>
-		<span class="exact">y</span>
-	</div>
-
-	<p>
-		The <span class="exact">y</span> is in the right place. <span class="close">r</span> and
-		<span class="close">t</span>
-		are the right letters, but in the wrong place. The other letters are wrong, and can be discarded.
-		Let's make another guess:
-	</p>
-
-	<div class="example">
-		<span class="exact">p</span>
-		<span class="exact">a</span>
-		<span class="exact">r</span>
-		<span class="exact">t</span>
-		<span class="exact">y</span>
-	</div>
-
-	<p>This time we guessed right! You have <strong>six</strong> guesses to get the word.</p>
-
-	<p>
-		Unlike the original Wordle, Sverdle runs on the server instead of in the browser, making it
-		impossible to cheat. It uses <code>&lt;form&gt;</code> and cookies to submit data, meaning you can
-		even play with JavaScript disabled!
-	</p>
-</div>
+	{#await gironi}
+		<p>Caricamento gironi...</p>
+	{:then grouped}
+		{#each Object.entries(grouped) as [categoria, teams]}
+			{#if teams.length > 0}
+				<h2>{categoria}</h2>
+				<div class="girone">
+					{#each teams as team}
+						<div class="squadra">
+							<p class="nome">{team.teamName}</p>
+							<p class="coach">Coach: {team.coachName}</p>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p>Nessuna squadra registrata per {categoria}.</p>
+			{/if}
+		{/each}
+	{:catch error}
+		<p>Errore durante il caricamento dei gironi.</p>
+	{/await}
+</section>
 
 <style>
-	span {
-		display: inline-flex;
-		justify-content: center;
-		align-items: center;
-		font-size: 0.8em;
-		width: 2.4em;
-		height: 2.4em;
-		background-color: white;
-		box-sizing: border-box;
-		border-radius: 2px;
-		border-width: 2px;
-		color: rgba(0, 0, 0, 0.7);
+	section {
+		max-width: 900px;
+		margin: 2rem auto;
+		padding: 2rem;
+		background-color: #f9f9f9;
+		border-radius: 16px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 	}
-
-	.missing {
-		background: rgba(255, 255, 255, 0.5);
-		color: rgba(0, 0, 0, 0.5);
+	h1 {
+		text-align: center;
+		margin-bottom: 2rem;
 	}
-
-	.close {
-		border-style: solid;
-		border-color: var(--color-theme-2);
+	h2 {
+		margin-top: 2rem;
+		color: #006eff;
 	}
-
-	.exact {
-		background: var(--color-theme-2);
-		color: white;
+	.girone {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		gap: 1rem;
+		margin-top: 1rem;
 	}
-
-	.example {
-		display: flex;
-		justify-content: flex-start;
-		margin: 1rem 0;
-		gap: 0.2rem;
+	.squadra {
+		background-color: #e6f0ff;
+		padding: 1rem;
+		border-radius: 12px;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 	}
-
-	.example span {
-		font-size: 1.4rem;
+	.nome {
+		font-weight: bold;
+		font-size: 1.2rem;
 	}
-
-	p span {
-		position: relative;
-		border-width: 1px;
-		border-radius: 1px;
-		font-size: 0.4em;
-		transform: scale(2) translate(0, -10%);
-		margin: 0 1em;
+	.coach {
+		font-size: 0.9rem;
+		color: #333;
 	}
 </style>
