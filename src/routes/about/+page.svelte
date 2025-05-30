@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { registeredTeams } from '$lib/stores/teams';
-	import EliminationBracket from './EliminationBracket.svelte';
+	import { registeredTeams } from '/Users/itis/Desktop/s3volley/src/lib/stores/teams';
+	import eliminazionediretta from './eliminazionediretta.svelte';
 
 	// Ottieni solo i nomi delle squadre
 	$: teamNames = $registeredTeams.map(t => t.teamName);
@@ -12,7 +12,7 @@
 	{#if teamNames.length < 2}
 		<p>Devi registrare almeno due squadre per creare un girone a eliminazione diretta.</p>
 	{:else}
-		<EliminationBracket {teams}={teamNames} />
+		<eliminazionediretta {teams}={teamNames} />
 	{/if}
 </section>
 
