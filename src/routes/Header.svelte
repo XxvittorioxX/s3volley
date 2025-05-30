@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import logo from '$lib/images/svelte-logo.svg';
-	import github from '$lib/images/github.svg';
+	import logo from '$lib/images/logo-s3.jpg';
+	import github from '$lib/images/volleys3.jpg';
 </script>
 
 <header>
 	<div class="corner">
-		<a href="https://svelte.dev/docs/kit">
-			<img src={logo} alt="SvelteKit" />
+		<a href="https://www.federvolley.it/volley-s3-regole-di-gioco-e-documenti">
+			<img src={logo} alt="logo-s3.jpg" />
 
 		</a>
 	</div>
@@ -33,8 +33,8 @@
 	</nav>
 
 	<div class="corner">
-		<a href="https://github.com/sveltejs/kit">
-			<img src={github} alt="GitHub" />
+		<a href="https://sistema3.it/">
+			<img src={logo} alt="volleys3.jpg" />
 		</a>
 	</div>
 </header>
