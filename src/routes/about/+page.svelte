@@ -1,18 +1,51 @@
 <script lang="ts">
+	import { registeredTeams, type Team } from '$lib/stores/teams';
 	import { matches, type Match } from '$lib/stores/matches';
 	import { get } from 'svelte/store';
 	import { onMount } from 'svelte';
 
 	let localMatches: Match[] = [];
-
-	$: localMatches = get(matches);
-
 	const categories = ['Under 10', 'Under 12', 'Under 14'];
 
+	// Genera tutti i match round robin a partire dalle squadre registrate
+	function generateMatchesFromTeams(teams: Team[]): Match[] {
+		const newMatches: Match[] = [];
+
+		// per ogni categoria filtra le squadre
+		for (const category of categories) {
+			const teamsInCat = teams.filter(t => t.category === category);
+			for (let i = 0; i < teamsInCat.length; i++) {
+				for (let j = i + 1; j < teamsInCat.length; j++) {
+					newMatches.push({
+						team1: teamsInCat[i].teamName,
+						team2: teamsInCat[j].teamName,
+						category,
+						sets: [
+							{ team1: 0, team2: 0 },
+							{ team1: 0, team2: 0 },
+							{ team1: 0, team2: 0 }
+						],
+						winner: null
+					});
+				}
+			}
+		}
+		return newMatches;
+	}
+
+	// Aggiorna i match appena caricate o quando cambiano le squadre registrate
+	onMount(() => {
+		const teams = get(registeredTeams);
+		const newMatches = generateMatchesFromTeams(teams);
+		matches.set(newMatches);
+		localMatches = newMatches;
+	});
+
+	// Aggiorna i set e verifica vincitore
 	function updateSet(matchIndex: number, setIndex: number, field: 'team1' | 'team2', value: number) {
 		localMatches[matchIndex].sets[setIndex][field] = value;
-		matches.set(localMatches);
 		checkWinner(localMatches[matchIndex]);
+		matches.set([...localMatches]);
 	}
 
 	function checkWinner(match: Match) {
@@ -23,17 +56,17 @@
 			const set1 = set.team1;
 			const set2 = set.team2;
 
-			if (set1 >= 15 && set1 >= set2 + 1) team1Sets++;
-			else if (set2 >= 15 && set2 >= set1 + 1) team2Sets++;
+			// Regola: serve almeno 15 punti e 2 punti di vantaggio
+			if (set1 >= 15 && set1 >= set2 + 2) team1Sets++;
+			else if (set2 >= 15 && set2 >= set1 + 2) team2Sets++;
 		}
 
 		if (team1Sets === 2) match.winner = match.team1;
 		else if (team2Sets === 2) match.winner = match.team2;
 		else match.winner = null;
-
-		matches.set([...localMatches]);
 	}
 
+	// Per mostrare i vincitori di categoria
 	function getWinnersByCategory(category: string): string[] {
 		const matchResults = localMatches.filter(m => m.category === category && m.winner);
 		const count: Record<string, number> = {};
@@ -51,15 +84,11 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Calendario Partite - Torneo Volley S3</title>
-</svelte:head>
-
 <section>
 	<h1>Calendario Partite</h1>
 
 	{#if localMatches.length === 0}
-		<p>Attendi che vengano registrate almeno due squadre.</p>
+		<p>Attendi che vengano registrate almeno due squadre per categoria.</p>
 	{:else}
 		{#each categories as category}
 			<h2>{category}</h2>
@@ -97,7 +126,7 @@
 				{/each}
 			{/if}
 			<hr />
-		{/each}		
+		{/each}
 	{/if}
 </section>
 
@@ -124,7 +153,7 @@
 	}
 
 	ul {
-		list-style: none;																																																																																																																			
+		list-style: none;
 		padding: 0;
 	}
 
