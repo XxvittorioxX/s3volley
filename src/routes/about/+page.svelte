@@ -9,22 +9,9 @@
 		winner: string | null;
 	};
 
-	type Group = {
-		name: string;
-		teams: string[];
-		matches: Match[];
-	};
-
-	let groups: Group[] = [];
-
-	function shuffleArray<T>(array: T[]): T[] {
-		const arr = [...array];
-		for (let i = arr.length - 1; i > 0; i--) {
-			const j = Math.floor(Math.random() * (i + 1));
-			[arr[i], arr[j]] = [arr[j], arr[i]];
-		}
-		return arr;
-	}
+	let groupMatchesByCategory: Record<string, Match[]> = {};
+	let finalEliminationRounds: Match[][] = [];
+	let categoryWinners: string[] = [];
 
 	function generateGroupMatches(teams: string[]): Match[] {
 		const matches: Match[] = [];
@@ -36,101 +23,150 @@
 		return matches;
 	}
 
+	function generateEliminationRounds(teams: string[]): Match[][] {
+		const rounds: Match[][] = [];
+		let currentTeams = [...teams];
+
+		for (let i = currentTeams.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[currentTeams[i], currentTeams[j]] = [currentTeams[j], currentTeams[i]];
+		}
+
+		while (currentTeams.length > 1) {
+			const roundMatches: Match[] = [];
+			for (let i = 0; i < currentTeams.length; i += 2) {
+				if (i + 1 < currentTeams.length) {
+					roundMatches.push({ team1: currentTeams[i], team2: currentTeams[i + 1], winner: null });
+				} else {
+					roundMatches.push({ team1: currentTeams[i], team2: 'BYE', winner: currentTeams[i] });
+				}
+			}
+			rounds.push(roundMatches);
+			currentTeams = roundMatches.map(m => m.winner).filter(w => w && w !== 'BYE') as string[];
+		}
+		return rounds;
+	}
+
 	onMount(() => {
-		const allTeams = shuffleArray(get(registeredTeams).map(t => t.teamName));
-		const groupSize = 4;
-		const groupCount = Math.floor(allTeams.length / groupSize);
+		const allTeams = get(registeredTeams);
+		const categories = [...new Set(allTeams.map(t => t.category))];
 
-		groups = [];
-
-		for (let i = 0; i < groupCount; i++) {
-			const groupTeams = allTeams.slice(i * groupSize, (i + 1) * groupSize);
-			const group: Group = {
-				name: `Gruppo ${String.fromCharCode(65 + i)}`,
-				teams: groupTeams,
-				matches: generateGroupMatches(groupTeams)
-			};
-			groups.push(group);
+		for (const category of categories) {
+			const teams = allTeams.filter(t => t.category === category).map(t => t.teamName);
+			if (teams.length >= 2) {
+				groupMatchesByCategory[category] = generateGroupMatches(teams);
+			}
 		}
 	});
 
-	function setWinner(groupIndex: number, matchIndex: number, winner: string) {
-		groups[groupIndex].matches[matchIndex].winner = winner;
+	function setGroupWinner(category: string, matchIdx: number, winner: string) {
+		groupMatchesByCategory[category][matchIdx].winner = winner;
+
+		const allMatches = groupMatchesByCategory[category];
+		const winnersCount: Record<string, number> = {};
+		for (const match of allMatches) {
+			if (match.winner) {
+				winnersCount[match.winner] = (winnersCount[match.winner] || 0) + 1;
+			}
+		}
+
+		let topTeam = Object.entries(winnersCount).sort((a, b) => b[1] - a[1])[0]?.[0];
+		if (topTeam && !categoryWinners.includes(topTeam)) {
+			categoryWinners.push(topTeam);
+			finalEliminationRounds = generateEliminationRounds(categoryWinners);
+		}
+	}
+
+	function setFinalWinner(roundIdx: number, matchIdx: number, winner: string) {
+		finalEliminationRounds[roundIdx][matchIdx].winner = winner;
+		const nextRoundTeams = finalEliminationRounds[roundIdx]
+			.map(m => m.winner)
+			.filter(w => w && w !== 'BYE') as string[];
+
+		finalEliminationRounds = finalEliminationRounds.slice(0, roundIdx + 1);
+		if (nextRoundTeams.length > 0) {
+			finalEliminationRounds.push(generateEliminationRounds(nextRoundTeams)[0]);
+		}
 	}
 </script>
 
+<section>
+	<h1>Gironi per Categoria</h1>
+	{#each Object.entries(groupMatchesByCategory) as [category, matches]}
+		<h2>{category}</h2>
+		<ul>
+			{#each matches as match, i}
+				<li>
+					{match.team1} vs {match.team2} <br />
+					{#if !match.winner}
+						<button on:click={() => setGroupWinner(category, i, match.team1)}>{match.team1} vince</button>
+						<button on:click={() => setGroupWinner(category, i, match.team2)}>{match.team2} vince</button>
+					{:else}
+						<p><strong>Vincitore: {match.winner}</strong></p>
+					{/if}
+				</li>
+			{/each}
+		</ul>
+	{/each}
+
+	{#if finalEliminationRounds.length > 0}
+		<h2>Fase Finale tra i Vincitori dei Gironi</h2>
+		{#each finalEliminationRounds as round, i}
+			<h3>Round {i + 1}</h3>
+			<ul>
+				{#each round as match, j}
+					<li>
+						{match.team1} vs {match.team2} <br />
+						{#if !match.winner || match.winner === 'BYE'}
+							<button on:click={() => setFinalWinner(i, j, match.team1)}>{match.team1} vince</button>
+							{#if match.team2 !== 'BYE'}
+								<button on:click={() => setFinalWinner(i, j, match.team2)}>{match.team2} vince</button>
+							{/if}
+						{:else}
+							<p><strong>Vincitore: {match.winner}</strong></p>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{/each}
+		{#if finalEliminationRounds[finalEliminationRounds.length - 1]?.length === 1 && finalEliminationRounds[finalEliminationRounds.length - 1][0].winner}
+			<h2>🏆 Vincitore Assoluto: {finalEliminationRounds[finalEliminationRounds.length - 1][0].winner}</h2>
+		{/if}
+	{/if}
+</section>
+
 <style>
-	:global(*) {
-		margin: 0;
-		padding: 0;
-		box-sizing: border-box;
-	}
-	:global(body) {
-		font-family: sans-serif;
-		background: #f9f9f9;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-	}
-	main {
-		max-width: 1000px;
-		width: 100%;
+	section {
+		max-width: 900px;
+		margin: auto;
 		padding: 2rem;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 2rem;
-		justify-content: center;
-	}
-	.group {
-		background: #e6f0ff;
-		padding: 1rem;
+		background: #f0f8ff;
 		border-radius: 12px;
-		width: 300px;
 	}
-	h2 {
-		margin-bottom: 1rem;
+	h1, h2, h3 {
 		text-align: center;
+		margin-bottom: 1rem;
 	}
-	.match {
-		margin-bottom: 0.8rem;
+	ul {
+		list-style: none;
+		padding: 0;
+	}
+	li {
+		margin-bottom: 1rem;
 		padding: 0.5rem;
-		background: #fff;
+		background: #e6f0ff;
 		border-radius: 8px;
 	}
 	button {
-		margin: 0.2rem;
-		padding: 0.3rem 0.6rem;
+		margin: 0.5rem;
+		padding: 0.4rem 1rem;
 		background: #006eff;
 		color: white;
 		border: none;
 		border-radius: 6px;
 		cursor: pointer;
-		font-size: 0.8rem;
 	}
 	button:hover {
-		background: #004fc1;
+		background: #0051c3;
 	}
 </style>
-
-<h1 style="margin-top: 2rem;">Fase a Gironi</h1>
-
-<main>
-	{#each groups as group, i}
-		<div class="group">
-			<h2>{group.name}</h2>
-			{#each group.matches as match, j}
-				<div class="match">
-					{match.team1} vs {match.team2}
-					{#if !match.winner}
-						<div>
-							<button on:click={() => setWinner(i, j, match.team1)}>{match.team1} vince</button>
-							<button on:click={() => setWinner(i, j, match.team2)}>{match.team2} vince</button>
-						</div>
-					{:else}
-						<p><strong>Vincitore: {match.winner}</strong></p>
-					{/if}
-				</div>
-			{/each}
-		</div>
-	{/each}
-</main>
