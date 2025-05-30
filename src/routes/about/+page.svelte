@@ -13,7 +13,8 @@
 		<p>Devi registrare almeno due squadre per creare un girone a eliminazione diretta.</p>
 	{:else}
 	
-		<eliminazionediretta {teams}={teamNames} />
+		<eliminazionediretta teams={teamNames} />
+
 	{/if}
 </section>
 
