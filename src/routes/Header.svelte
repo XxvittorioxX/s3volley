@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import logo from '$lib/images/logo-s3.jpg';
-	import github from '$lib/images/volleys3.jpg';
+	import logo1 from '$lib/images/volleys3.jpg';
 </script>
 
 <header>
 	<div class="corner">
 		<a href="https://www.federvolley.it/volley-s3-regole-di-gioco-e-documenti">
-			<img src={logo} alt="logo-s3.jpg" />
+			<img src={logo1} alt="volleys3.jpg" />
 
 		</a>
 	</div>
@@ -70,8 +70,8 @@
 }
 
 .corner img {
-	width: 2em;
-	height: 2em;
+	width: 3em;
+	height: 3em;
 	object-fit: contain;
 	filter: drop-shadow(0 0 2px rgba(0,0,0,0.15));
 	transition: filter 0.3s ease;
