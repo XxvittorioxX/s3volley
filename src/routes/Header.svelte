@@ -151,3 +151,4 @@ nav a {
 nav a:hover {
 	color: #006eff;
 }
+</style>
