@@ -10,7 +10,25 @@
 	// Store reattivo per le finali
 	const finals = writable<Match[]>([]);
 
-	// Funzione per mischiare gli array
+	// Dati di esempio per i gruppi
+	let groups: { matches: Match[] }[] = [
+		{
+			matches: [
+				{ team1: 'Team A', team2: 'Team B', winner: 'Team A' }
+			]
+		},
+		{
+			matches: [
+				{ team1: 'Team C', team2: 'Team D', winner: 'Team C' }
+			]
+		},
+		{
+			matches: [
+				{ team1: 'Team E', team2: 'Team F', winner: 'Team F' }
+			]
+		}
+	];
+
 	function shuffleArray<T>(array: T[]): T[] {
 		const arr = [...array];
 		for (let i = arr.length - 1; i > 0; i--) {
@@ -19,9 +37,6 @@
 		}
 		return arr;
 	}
-
-	// groups dovrebbe essere fornito (può essere prop o store)
-	export let groups: { matches: Match[] }[] = [];
 
 	function generateFinals() {
 		const winners: string[] = [];
