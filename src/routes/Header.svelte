@@ -70,8 +70,8 @@
 }
 
 .corner img {
-	width: 3em;
-	height: 3em;
+	width: 4em;
+	height: 4em;
 	object-fit: contain;
 	filter: drop-shadow(0 0 2px rgba(0,0,0,0.15));
 	transition: filter 0.3s ease;
