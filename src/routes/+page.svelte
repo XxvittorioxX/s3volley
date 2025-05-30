@@ -34,92 +34,69 @@
 	<title>Torneo Volley S3 - Registrazione</title>
 </svelte:head>
 
-<section>
-	<h1>Registrazione Squadra</h1>
+<section class="container my-5" style="max-width: 600px;">
+	<h1 class="text-center mb-4">Registrazione Squadra</h1>
 
-	<form on:submit|preventDefault={handleSubmit}>
-		<label>
-			Nome squadra:
-			<input type="text" bind:value={teamName} required />
-		</label>
+	<form on:submit|preventDefault={handleSubmit} class="needs-validation" novalidate>
+		<div class="mb-3">
+			<label for="teamName" class="form-label">Nome squadra:</label>
+			<input
+				id="teamName"
+				type="text"
+				bind:value={teamName}
+				class="form-control"
+				required
+			/>
+		</div>
 
-		<label>
-			Categoria:
-			<select bind:value={category} required>
+		<div class="mb-3">
+			<label for="category" class="form-label">Categoria:</label>
+			<select
+				id="category"
+				bind:value={category}
+				class="form-select"
+				required
+			>
 				<option value="" disabled selected>Scegli una categoria</option>
 				<option value="Under 10">Under 10</option>
 				<option value="Under 12">Under 12</option>
 				<option value="Under 14">Under 14</option>
 			</select>
-		</label>
+		</div>
 
-		<label>
-			Nome responsabile:
-			<input type="text" bind:value={coachName} required />
-		</label>
+		<div class="mb-3">
+			<label for="coachName" class="form-label">Nome responsabile:</label>
+			<input
+				id="coachName"
+				type="text"
+				bind:value={coachName}
+				class="form-control"
+				required
+			/>
+		</div>
 
-		<label>
-			Email:
-			<input type="email" bind:value={email} required />
-		</label>
+		<div class="mb-3">
+			<label for="email" class="form-label">Email:</label>
+			<input
+				id="email"
+				type="email"
+				bind:value={email}
+				class="form-control"
+				required
+			/>
+		</div>
 
-		<label>
-			Telefono:
-			<input type="tel" bind:value={phone} required />
-		</label>
+		<div class="mb-3">
+			<label for="phone" class="form-label">Telefono:</label>
+			<input
+				id="phone"
+				type="tel"
+				bind:value={phone}
+				class="form-control"
+				required
+			/>
+		</div>
 
-		<button type="submit">Invia registrazione</button>
+		<button type="submit" class="btn btn-primary w-100">Invia registrazione</button>
 	</form>
 </section>
-
-<style>
-	section {
-		max-width: 600px;
-		margin: 2rem auto;
-		padding: 2rem;
-		background-color: #f9f9f9;
-		border-radius: 16px;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-	}
-
-	h1 {
-		text-align: center;
-		margin-bottom: 2rem;
-		font-size: 2.5rem;
-	}
-
-	form {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;	
-	}
-
-	label {
-		display: flex;
-		flex-direction: column;
-		font-weight: bold;
-	}
-
-	input,
-	select {
-		padding: 0.5rem;
-		font-size: 1rem;
-		border: 1px solid #ccc;
-		border-radius: 8px;
-	}
-
-	button {
-		padding: 0.75rem;
-		font-size: 1.1rem;
-		background-color: #006eff;
-		color: white;
-		border: none;
-		border-radius: 8px;
-		cursor: pointer;
-		transition: background-color 0.3s ease;
-	}
-
-	button:hover {
-		background-color: #0099ff;
-	}
-</style>
