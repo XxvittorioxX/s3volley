@@ -1,15 +1,14 @@
 <script lang="ts">
-	import { registeredTeams, type Team } from '$lib/stores/teams';
-	import { derived } from 'svelte/store';
+	import { ... } from '$lib/stores/teams';
 
-	const groupedTeams = derived(registeredTeams, ($teams) => {
-		return {
-			under10: $teams.filter(t => t.category === 'Under 10'),
-			under12: $teams.filter(t => t.category === 'Under 12'),
-			under14: $teams.filter(t => t.category === 'Under 14'),
-		};
-	});
+	function formatCategory(category: string): string {
+		if (category === 'under10') return 'Under 10';
+		if (category === 'under12') return 'Under 12';
+		if (category === 'under14') return 'Under 14';
+		return category;
+	}
 </script>
+
 
 <svelte:head>
 	<title>Gironi - Torneo Volley S3</title>
@@ -88,4 +87,27 @@
 		border-radius: 12px;
 		padding: 1rem;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-		transi
+		transition: transform 0.2s ease;
+	}
+
+	.team-card:hover {
+		transform: translateY(-4px);
+	}
+
+	h3 {
+		margin: 0 0 0.5rem;
+		font-size: 1.3rem;
+		color: #003d99;
+	}
+
+	p {
+		margin: 0.25rem 0;
+		font-size: 0.95rem;
+	}
+
+	.empty {
+		font-style: italic;
+		color: #999;
+		margin: 1rem 0 2rem;
+	}
+</style>

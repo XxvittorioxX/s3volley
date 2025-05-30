@@ -28,18 +28,10 @@
 		email = '';
 		phone = '';
 	}
-
-	$: teams = get(registeredTeams);
-
-	const categories = ['Under 10', 'Under 12', 'Under 14'];
-
-	function teamsByCategory(cat: string): Team[] {
-		return teams.filter(t => t.category === cat);
-	}
 </script>
 
 <svelte:head>
-	<title>Torneo Volley S3 - Registrazione & Gironi</title>
+	<title>Torneo Volley S3 - Registrazione</title>
 </svelte:head>
 
 <section>
@@ -80,44 +72,9 @@
 	</form>
 </section>
 
-<section>
-	<h2>Gironi Torneo</h2>
-
-	{#each categories as cat}
-		{#if teamsByCategory(cat).length >= 2}
-			<h3>{cat}</h3>
-			<table>
-				<thead>
-					<tr>
-						<th>#</th>
-						<th>Nome Squadra</th>
-						<th>Responsabile</th>
-						<th>Email</th>
-						<th>Telefono</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each teamsByCategory(cat) as team, i}
-						<tr>
-							<td>{i + 1}</td>
-							<td>{team.teamName}</td>
-							<td>{team.coachName}</td>
-							<td>{team.email}</td>
-							<td>{team.phone}</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		{:else}
-			<h3>{cat}</h3>
-			<p>Non ci sono ancora abbastanza squadre registrate per questa categoria.</p>
-		{/if}
-	{/each}
-</section>
-
 <style>
 	section {
-		max-width: 900px;
+		max-width: 600px;
 		margin: 2rem auto;
 		padding: 2rem;
 		background-color: #f9f9f9;
@@ -125,15 +82,16 @@
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 	}
 
-	h1, h2, h3 {
+	h1 {
 		text-align: center;
-		margin-bottom: 1.5rem;
+		margin-bottom: 2rem;
+		font-size: 2.5rem;
 	}
 
 	form {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 1rem;	
 	}
 
 	label {
@@ -163,22 +121,5 @@
 
 	button:hover {
 		background-color: #0099ff;
-	}
-
-	table {
-		width: 100%;
-		border-collapse: collapse;
-		margin-top: 1rem;
-		margin-bottom: 2rem;
-	}
-
-	th, td {
-		border: 1px solid #ccc;
-		padding: 0.75rem;
-		text-align: center;
-	}
-
-	th {
-		background-color: #e0ecff;
 	}
 </style>
