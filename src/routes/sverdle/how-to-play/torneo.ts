@@ -1,5 +1,5 @@
 import { derived } from 'svelte/store';
-import { registeredTeams, type Team } from './teams';
+import { registeredTeams, type Team } from '$lib/stores/teams';
 
 export type Girone = {
 	name: string;
