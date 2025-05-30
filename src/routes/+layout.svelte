@@ -12,9 +12,7 @@
 		{@render children()}
 	</main>
 
-	<footer><p> web masters: vittorio serafini.carlo fioretti</p>
-		<p>email:vittorio.serafini@divini.org,carlo.fioretti@divini.org</p>
-		<p>telefono:6987432105,5869342134</p>
+	<footer><p>web masters:vittorio serafini.carlo fioretti</p><p>email:vittorio.serafini@divini.org,carlo.fioretti@divini.org</p><p>telefono:6987432105,5869342134</p>
 	</footer>
 </div>
 
