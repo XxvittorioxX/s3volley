@@ -20,8 +20,8 @@
 			<li aria-current={page.url.pathname === '/' ? 'page' : undefined}>
 				<a href="/">Home</a>
 			</li>
-			<li aria-current={page.url.pathname === '/gironi' ? 'page' : undefined}>
-				<a href="/gironi">Gironi</a>
+			<li aria-current={page.url.pathname === '/about' ? 'page' : undefined}>
+				<a href="/about">Gironi</a>
 			</li>
 			<li aria-current={page.url.pathname.startsWith('/registrazioni') ? 'page' : undefined}>
 				<a href="/registrazioni">Visualizza Squadre</a>
