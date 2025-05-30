@@ -21,10 +21,10 @@
 				<a href="/">Home</a>
 			</li>
 			<li aria-current={page.url.pathname === '/about' ? 'page' : undefined}>
-				<a href="/about">Calendario</a>
+				<a href="/about">Gironi</a>
 			</li>
-			<li aria-current={page.url.pathname.startsWith('/sverdle') ? 'page' : undefined}>
-				<a href="/sverdle">Classifica</a>
+			<li aria-current={page.url.pathname.startsWith('/registrazioni') ? 'page' : undefined}>
+				<a href="/registrazioni">Visualizza Squadre</a>
 			</li>
 		</ul>
 		<svg viewBox="0 0 2 3" aria-hidden="true">
