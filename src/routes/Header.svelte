@@ -13,40 +13,25 @@
 
 		<!-- Navbar centrale -->
 		<nav class="navbar navbar-expand-md justify-content-center flex-grow-1">
-			<ul class="navbar-nav gap-5 mx-auto text-uppercase fw-semibold">
-				<li class="nav-item">
-					<a
-						class="nav-link position-relative"
-						href="/"
-						aria-current={page.url.pathname === '/' ? 'page' : undefined}
-						>
-						Home
+			<ul class="navbar-nav gap-4 mx-auto text-uppercase fw-semibold">
+				<li class="nav-item" aria-current={page.url.pathname === '/' ? 'page' : undefined}>
+					<a class="nav-link position-relative" href="/">Home
 						{#if page.url.pathname === '/'}
-							<span class="active-circle"></span>
+							<span class="active-indicator"></span>
 						{/if}
 					</a>
 				</li>
-				<li class="nav-item">
-					<a
-						class="nav-link position-relative"
-						href="/about"
-						aria-current={page.url.pathname === '/about' ? 'page' : undefined}
-						>
-						Gironi
+				<li class="nav-item" aria-current={page.url.pathname === '/about' ? 'page' : undefined}>
+					<a class="nav-link position-relative" href="/about">Gironi
 						{#if page.url.pathname === '/about'}
-							<span class="active-circle"></span>
+							<span class="active-indicator"></span>
 						{/if}
 					</a>
 				</li>
-				<li class="nav-item">
-					<a
-						class="nav-link position-relative"
-						href="/registrazioni"
-						aria-current={page.url.pathname.startsWith('/registrazioni') ? 'page' : undefined}
-						>
-						Visualizza Squadre
+				<li class="nav-item" aria-current={page.url.pathname.startsWith('/registrazioni') ? 'page' : undefined}>
+					<a class="nav-link position-relative" href="/registrazioni">Visualizza Squadre
 						{#if page.url.pathname.startsWith('/registrazioni')}
-							<span class="active-circle"></span>
+							<span class="active-indicator"></span>
 						{/if}
 					</a>
 				</li>
@@ -87,33 +72,34 @@
 		font-size: 1rem;
 		transition: color 0.25s ease;
 		position: relative;
-		padding-bottom: 0.5rem;
+		padding-bottom: 0.25rem;
 	}
 
 	.nav-link:hover {
 		color: #006eff;
 	}
 
-	/* Cerchio colorato animato sotto il link attivo */
-	.active-circle {
+	/* Indicatore sottolineato animato per il link attivo */
+	.active-indicator {
 		position: absolute;
 		bottom: 0;
 		left: 50%;
-		transform: translateX(-50%) scale(0);
-		width: 12px;
-		height: 12px;
-		background-color: #006eff;
-		border-radius: 50%;
-		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-		animation: scaleIn 0.3s forwards;
+		transform: translateX(-50%);
+		width: 40%;
+		height: 3px;
+		background: #006eff;
+		border-radius: 3px;
+		animation: slideIn 0.4s ease forwards;
 	}
 
-	@keyframes scaleIn {
+	@keyframes slideIn {
 		from {
-			transform: translateX(-50%) scale(0);
+			width: 0;
+			opacity: 0;
 		}
 		to {
-			transform: translateX(-50%) scale(1);
+			width: 40%;
+			opacity: 1;
 		}
 	}
 </style>
