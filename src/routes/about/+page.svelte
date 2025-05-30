@@ -1,9 +1,7 @@
-// File: src/routes/gironi/page.svelte
-
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { registeredTeams } from '$lib/stores/teams';
 	import { get } from 'svelte/store';
+	import { registeredTeams, type Team } from '$lib/stores/teams';
 
 	type Match = {
 		round: number;
@@ -12,133 +10,140 @@
 		winner: string | null;
 	};
 
-	let matches: Match[] = [];
-	let currentRound = 1;
-	let completed = false;
+	let matchesByCategory: Record<string, Match[][]> = {
+		"Under 10": [],
+		"Under 12": [],
+		"Under 14": []
+	};
 
-	function generateBracket(teams: string[]) {
-		let roundTeams = [...teams];
+	function generateEliminationMatches(teams: string[]): Match[][] {
+		const rounds: Match[][] = [];
+		let currentTeams = [...teams];
+
+		// Shuffle for randomness
+		for (let i = currentTeams.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[currentTeams[i], currentTeams[j]] = [currentTeams[j], currentTeams[i]];
+		}
+
 		let round = 1;
-		const allMatches: Match[] = [];
-
-		while (roundTeams.length > 1) {
-			if (roundTeams.length % 2 === 1) {
-				roundTeams.push('BYE');
+		while (currentTeams.length > 1) {
+			const roundMatches: Match[] = [];
+			for (let i = 0; i < currentTeams.length; i += 2) {
+				if (i + 1 < currentTeams.length) {
+					roundMatches.push({
+						round,
+						team1: currentTeams[i],
+						team2: currentTeams[i + 1],
+						winner: null
+					});
+				} else {
+					// Automatic win if odd number
+					roundMatches.push({
+						round,
+						team1: currentTeams[i],
+						team2: 'BYE',
+						winner: currentTeams[i]
+					});
+				}
 			}
-
-			const nextRoundTeams: string[] = [];
-			for (let i = 0; i < roundTeams.length; i += 2) {
-				const t1 = roundTeams[i];
-				const t2 = roundTeams[i + 1];
-				const winner = t2 === 'BYE' ? t1 : null;
-				allMatches.push({ round, team1: t1, team2: t2, winner });
-				if (winner) nextRoundTeams.push(winner);
-			}
-			roundTeams = nextRoundTeams;
+			rounds.push(roundMatches);
+			currentTeams = roundMatches.map(m => m.winner).filter(w => w && w !== 'BYE') as string[];
 			round++;
 		}
-
-		matches = allMatches;
-		currentRound = round - 1;
-		completed = false;
-	}
-
-	function selectWinner(match: Match, team: string) {
-		match.winner = team;
-
-		const thisRound = match.round;
-		const nextRound = thisRound + 1;
-		const roundMatches = matches.filter(m => m.round === nextRound);
-
-		let inserted = false;
-		for (const m of roundMatches) {
-			if (m.team1 === 'BYE') {
-				m.team1 = team;
-				inserted = true;
-				break;
-			} else if (m.team2 === 'BYE') {
-				m.team2 = team;
-				inserted = true;
-				break;
-			}
-		}
-
-		if (!inserted && roundMatches.length * 2 < matches.filter(m => m.round === thisRound).length) {
-			matches.push({ round: nextRound, team1: team, team2: 'BYE', winner: team });
-		}
-
-		if (matches.filter(m => m.round === currentRound).every(m => m.winner)) {
-			completed = matches.filter(m => m.round === currentRound).length === 1;
-		}
+		return rounds;
 	}
 
 	onMount(() => {
-		const teams = get(registeredTeams).map(t => t.teamName);
-		if (teams.length >= 2) generateBracket(teams);
+		const allTeams = get(registeredTeams);
+		const categories = ["Under 10", "Under 12", "Under 14"];
+		for (const category of categories) {
+			const teamsInCategory = allTeams.filter(t => t.category === category).map(t => t.teamName);
+			if (teamsInCategory.length >= 2) {
+				matchesByCategory[category] = generateEliminationMatches(teamsInCategory);
+			}
+		}
 	});
+
+	function setWinner(category: string, roundIdx: number, matchIdx: number, winner: string) {
+		const match = matchesByCategory[category][roundIdx][matchIdx];
+		match.winner = winner;
+
+		// Recalculate next rounds
+		const teams: string[] = [];
+		for (const round of matchesByCategory[category]) {
+			for (const m of round) {
+				if (m.winner && m.winner !== 'BYE') teams.push(m.winner);
+			}
+		}
+		matchesByCategory[category] = generateEliminationMatches(teams);
+	}
 </script>
 
 <section>
-	<h1>Eliminazione Diretta</h1>
-	{#if matches.length === 0}
-		<p>Registra almeno due squadre per iniziare il torneo.</p>
-	{:else}
-		{#each Array(currentRound) as _, r}
-			<h2>Turno {r + 1}</h2>
-			<ul>
-				{#each matches.filter(m => m.round === r + 1) as match}
-					<li>
-						<strong>{match.team1}</strong> vs <strong>{match.team2}</strong>
-						{#if match.winner === null && match.team2 !== 'BYE'}
-							<button on:click={() => selectWinner(match, match.team1)}>{match.team1} vince</button>
-							<button on:click={() => selectWinner(match, match.team2)}>{match.team2} vince</button>
-						{:else if match.winner}
-							<p><em>Vincitore: {match.winner}</em></p>
-						{/if}
-					</li>
-				{/each}
-			</ul>
-		{/each}
-		{#if completed}
-			<h2>🏆 Vincitore del Torneo: {matches.find(m => m.round === currentRound)?.winner}</h2>
+	<h1>Partite a Eliminazione Diretta</h1>
+
+	{#each Object.entries(matchesByCategory) as [category, rounds]}
+		{#if rounds.length > 0}
+			<h2>{category}</h2>
+			{#each rounds as round, i}
+				<h3>Round {i + 1}</h3>
+				<ul>
+					{#each round as match, j}
+						<li>
+							{match.team1} vs {match.team2} <br />
+							{#if !match.winner || match.winner === 'BYE'}
+								<button on:click={() => setWinner(category, i, j, match.team1)}>{match.team1} vince</button>
+								{#if match.team2 !== 'BYE'}
+									<button on:click={() => setWinner(category, i, j, match.team2)}>{match.team2} vince</button>
+								{/if}
+							{:else}
+								<p><strong>Vincitore: {match.winner}</strong></p>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			{/each}
+
+			{#if rounds[rounds.length - 1]?.length === 1 && rounds[rounds.length - 1][0].winner}
+				<h3>🏆 Vincitore Finale {category}: {rounds[rounds.length - 1][0].winner}</h3>
+			{/if}
 		{/if}
-	{/if}
+	{/each}
 </section>
 
 <style>
 	section {
-		max-width: 800px;
-		margin: 2rem auto;
+		max-width: 900px;
+		margin: auto;
 		padding: 2rem;
-		background: #f4f4f4;
+		background: #f0f8ff;
 		border-radius: 12px;
-		box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 	}
-	h1, h2 {
+	h1 {
 		text-align: center;
+		margin-bottom: 2rem;
 	}
 	ul {
 		list-style: none;
 		padding: 0;
 	}
 	li {
-		padding: 1rem;
 		margin-bottom: 1rem;
-		background: #fff;
+		padding: 0.5rem;
+		background: #e6f0ff;
 		border-radius: 8px;
-		box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 	}
 	button {
 		margin: 0.5rem;
-		padding: 0.5rem 1rem;
-		border: none;
-		border-radius: 8px;
-		background: #007bff;
+		padding: 0.4rem 1rem;
+		background: #006eff;
 		color: white;
+		border: none;
+		border-radius: 6px;
 		cursor: pointer;
-		transition: background 0.3s;
 	}
 	button:hover {
-		background: #0056b3;
+		background: #0051c3;
 	}
 </style>
