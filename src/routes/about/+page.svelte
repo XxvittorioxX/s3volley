@@ -138,7 +138,7 @@
 	max-width: 1200px;
 	margin: 2rem auto;
 	padding: 2rem;
-	background: white;
+	background: #f5f7f8;
 	border-radius: 20px;
 	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 	font-family: 'Segoe UI', sans-serif;
@@ -152,7 +152,7 @@ h1 {
 }
 
 .teams {
-	background: #f0f4f8;
+	background: #f5f7f8;
 	padding: 2rem;
 	border-radius: 20px;
 	margin-bottom: 2rem;
@@ -160,7 +160,7 @@ h1 {
 }
 
 .team {
-	background: white;
+	background: #f5f7f8;
 	padding: 1rem;
 	margin: 1rem 0;
 	border-radius: 16px;
@@ -229,7 +229,7 @@ h1 {
 	background: #ecf0f1;
 	border-radius: 10px;
 	text-align: center;
-	transition: background 0.2s ease;
+
 }
 
 .vs .winner {
@@ -246,7 +246,6 @@ button {
 	border-radius: 12px;
 	margin: 0.3rem;
 	cursor: pointer;
-	transition: background 0.3s ease;
 	font-weight: bold;
 }
 
