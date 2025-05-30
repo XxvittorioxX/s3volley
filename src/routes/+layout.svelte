@@ -12,10 +12,8 @@
 		{@render children()}
 	</main>
 
-	<footer>
-		<p>
-			visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to learn about SvelteKit
-		</p>
+	<footer>web masters:<p>
+		vittorio serafini.carlo fioretti</p><p>email:vittorio.serafini@divini.org,carlo.fioretti@divini.org</p><p>telefono:6987432105,5869342134</p>
 	</footer>
 </div>
 
@@ -42,7 +40,7 @@
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
-		padding: 12px;
+		padding: 10px;
 	}
 
 	footer a {
