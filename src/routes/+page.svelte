@@ -34,8 +34,8 @@
 	<title>Torneo Volley S3 - Registrazione</title>
 </svelte:head>
 
-<section class="container my-5" style="max-width: 600px;">
-	<h1 class="text-center mb-4">Registrazione Squadra</h1>
+<section class="container my-5 p-4 shadow-sm rounded-4 bg-light border border-2 border-primary-subtle" style="max-width: 600px;">
+	<h1 class="text-center mb-4 text-primary-emphasis">Registrazione Squadra</h1>
 
 	<form on:submit|preventDefault={handleSubmit} class="needs-validation" novalidate>
 		<div class="mb-3">
