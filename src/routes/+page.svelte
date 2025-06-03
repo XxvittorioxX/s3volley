@@ -11,7 +11,8 @@
 	function handleSubmit() {
 		const current = get(registeredTeams);
 
-		if (current.length <= 4) {
+		if (current.length >= 4) {
+			alert('Il numero massimo di 4 squadre è stato raggiunto.');
 			return;
 		}
 
