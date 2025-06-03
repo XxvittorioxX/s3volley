@@ -34,7 +34,8 @@
 	<title>Torneo Volley S3 - Registrazione</title>
 </svelte:head>
 
-<h1 class="text-center mb-4 fw-semibold display-6 border-bottom pb-2 text-primary-emphasis">
+<section class="container my-5 p-4 shadow-sm rounded-4 bg-light border border-2 border-primary-subtle" style="max-width: 600px;"></section>
+	<h1 class="text-center mb-4 fw-semibold display-6 border-bottom pb-2 text-primary-emphasis">
   <i class="bi bi-pencil-square me-2"></i>Registrazione Squadra
 </h1>
 
