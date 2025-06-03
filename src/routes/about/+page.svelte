@@ -13,6 +13,7 @@
 		round?: number;
 		group?: string;
 		phase: 'group' | 'knockout';
+		category?: string;
 	}
 
 	interface GroupStanding {
@@ -33,10 +34,14 @@
 	let groupStandings: { [key: string]: GroupStanding[] } = {};
 	let groups: { [key: string]: Team[] } = {};
 	let currentPhase: 'setup' | 'group' | 'knockout' | 'finished' = 'setup';
-	let winner: Team | null = null;
-	let qualifiedTeams: Team[] = [];
+	let winner: { [category: string]: Team | null } = {};
+	let qualifiedTeams: { [category: string]: Team[] } = {};
+	let categories: string[] = [];
 
-	onMount(() => teams = get(registeredTeams));
+	onMount(() => {
+		teams = get(registeredTeams);
+		categories = [...new Set(teams.map(t => t.category))];
+	});
 
 	function createGroups() {
 		if (teams.length < 4) {
@@ -44,58 +49,87 @@
 			return;
 		}
 
-		// Calcola numero di gironi (4 squadre per girone, minimo 2 gironi)
-		const numGroups = Math.max(2, Math.ceil(teams.length / 4));
-		const shuffled = [...teams].sort(() => Math.random() - 0.5);
-		
-		groups = {};
-		const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-		
-		// Distribuisci squadre nei gironi
-		for (let i = 0; i < numGroups; i++) {
-			const groupName = groupNames[i];
-			groups[groupName] = [];
+		// Raggruppa squadre per categoria
+		const teamsByCategory: { [category: string]: Team[] } = {};
+		teams.forEach(team => {
+			if (!teamsByCategory[team.category]) {
+				teamsByCategory[team.category] = [];
+			}
+			teamsByCategory[team.category].push(team);
+		});
+
+		// Verifica che ogni categoria abbia almeno 2 squadre
+		for (const [category, categoryTeams] of Object.entries(teamsByCategory)) {
+			if (categoryTeams.length < 2) {
+				alert(`La categoria ${category} ha solo ${categoryTeams.length} squadra/e. Servono almeno 2 squadre per categoria!`);
+				return;
+			}
 		}
 
-		shuffled.forEach((team, index) => {
-			const groupIndex = index % numGroups;
-			const groupName = groupNames[groupIndex];
-			groups[groupName].push(team);
-		});
-
-		// Crea partite dei gironi
+		groups = {};
 		groupMatches = [];
-		Object.entries(groups).forEach(([groupName, groupTeams]) => {
-			for (let i = 0; i < groupTeams.length; i++) {
-				for (let j = i + 1; j < groupTeams.length; j++) {
-					groupMatches.push({
-						id: `${groupName}-${i}-${j}`,
-						t1: groupTeams[i],
-						t2: groupTeams[j],
-						w: null,
-						score1: 0,
-						score2: 0,
-						group: groupName,
-						phase: 'group'
-					});
-				}
-			}
-		});
-
-		// Inizializza classifiche gironi
 		groupStandings = {};
-		Object.entries(groups).forEach(([groupName, groupTeams]) => {
-			groupStandings[groupName] = groupTeams.map(team => ({
-				team,
-				played: 0,
-				won: 0,
-				drawn: 0,
-				lost: 0,
-				points: 0,
-				goalsFor: 0,
-				goalsAgainst: 0,
-				goalDifference: 0
-			}));
+		const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+		let groupIndex = 0;
+
+		// Crea gironi per ogni categoria
+		Object.entries(teamsByCategory).forEach(([category, categoryTeams]) => {
+			// Mescola le squadre della categoria
+			const shuffled = [...categoryTeams].sort(() => Math.random() - 0.5);
+			
+			// Calcola numero di gironi per questa categoria (massimo 4 squadre per girone)
+			const numGroupsForCategory = Math.ceil(shuffled.length / 4);
+			
+			// Distribuisci squadre nei gironi
+			for (let i = 0; i < numGroupsForCategory; i++) {
+				const groupName = `${category}-${groupNames[groupIndex % groupNames.length]}`;
+				groups[groupName] = [];
+				groupIndex++;
+			}
+
+			const categoryGroupNames = Object.keys(groups).filter(name => name.startsWith(category));
+			
+			shuffled.forEach((team, index) => {
+				const targetGroupIndex = index % categoryGroupNames.length;
+				const targetGroupName = categoryGroupNames[targetGroupIndex];
+				groups[targetGroupName].push(team);
+			});
+
+			// Crea partite dei gironi per questa categoria
+			categoryGroupNames.forEach(groupName => {
+				const groupTeams = groups[groupName];
+				for (let i = 0; i < groupTeams.length; i++) {
+					for (let j = i + 1; j < groupTeams.length; j++) {
+						groupMatches.push({
+							id: `${groupName}-${i}-${j}`,
+							t1: groupTeams[i],
+							t2: groupTeams[j],
+							w: null,
+							score1: undefined,
+							score2: undefined,
+							group: groupName,
+							phase: 'group',
+							category: category
+						});
+					}
+				}
+			});
+
+			// Inizializza classifiche gironi per questa categoria
+			categoryGroupNames.forEach(groupName => {
+				const groupTeams = groups[groupName];
+				groupStandings[groupName] = groupTeams.map(team => ({
+					team,
+					played: 0,
+					won: 0,
+					drawn: 0,
+					lost: 0,
+					points: 0,
+					goalsFor: 0,
+					goalsAgainst: 0,
+					goalDifference: 0
+				}));
+			});
 		});
 
 		currentPhase = 'group';
@@ -105,20 +139,41 @@
 		const match = groupMatches.find(m => m.id === matchId);
 		if (!match || !match.t1 || !match.t2) return;
 
+		// Se il risultato era già stato inserito, sottrai i vecchi valori
+		const standing1 = groupStandings[match.group!].find(s => s.team === match.t1);
+		const standing2 = groupStandings[match.group!].find(s => s.team === match.t2);
+
+		if (standing1 && standing2 && match.score1 !== undefined && match.score2 !== undefined) {
+			// Rimuovi vecchi risultati
+			standing1.played--;
+			standing2.played--;
+			standing1.goalsFor -= match.score1;
+			standing1.goalsAgainst -= match.score2;
+			standing2.goalsFor -= match.score2;
+			standing2.goalsAgainst -= match.score1;
+
+			if (match.score1 > match.score2) {
+				standing1.won--;
+				standing1.points -= 3;
+				standing2.lost--;
+			} else if (match.score2 > match.score1) {
+				standing2.won--;
+				standing2.points -= 3;
+				standing1.lost--;
+			} else {
+				standing1.drawn--;
+				standing2.drawn--;
+				standing1.points -= 1;
+				standing2.points -= 1;
+			}
+		}
+
 		match.score1 = score1;
 		match.score2 = score2;
 		match.w = score1 > score2 ? match.t1 : score1 < score2 ? match.t2 : null;
 
-		// Aggiorna classifiche
-		const standing1 = groupStandings[match.group!].find(s => s.team === match.t1);
-		const standing2 = groupStandings[match.group!].find(s => s.team === match.t2);
-
+		// Aggiorna classifiche con i nuovi risultati
 		if (standing1 && standing2) {
-			// Reset previous result if any
-			if (match.score1 !== undefined && match.score2 !== undefined) {
-				// Remove old stats (simplified approach - in real app you'd track this better)
-			}
-
 			standing1.played++;
 			standing2.played++;
 			standing1.goalsFor += score1;
@@ -154,47 +209,71 @@
 		});
 
 		groupStandings = { ...groupStandings };
+		groupMatches = [...groupMatches];
 	}
 
 	function startKnockoutPhase() {
-		// Prendi le prime 2 di ogni girone
-		qualifiedTeams = [];
-		Object.values(groupStandings).forEach(standings => {
-			qualifiedTeams.push(...standings.slice(0, 2).map(s => s.team));
+		// Prendi le prime 2 di ogni girone per categoria
+		qualifiedTeams = {};
+		
+		categories.forEach(category => {
+			qualifiedTeams[category] = [];
+			
+			Object.entries(groupStandings).forEach(([groupName, standings]) => {
+				if (groupName.startsWith(category)) {
+					const qualified = standings.slice(0, 2).map(s => s.team);
+					qualifiedTeams[category].push(...qualified);
+				}
+			});
+
+			if (qualifiedTeams[category].length < 2) {
+				alert(`Non ci sono abbastanza squadre qualificate per la categoria ${category}!`);
+				return;
+			}
 		});
 
-		if (qualifiedTeams.length < 2) {
-			alert('Non ci sono abbastanza squadre qualificate!');
-			return;
-		}
-
-		// Crea eliminazione diretta
-		const shuffled = [...qualifiedTeams].sort(() => Math.random() - 0.5);
+		// Crea eliminazione diretta per ogni categoria
 		knockoutMatches = [];
-		let round = 1;
-		let current = [];
+		
+		categories.forEach(category => {
+			const categoryQualified = qualifiedTeams[category];
+			if (categoryQualified.length < 2) return;
 
-		for (let i = 0; i < shuffled.length; i += 2) {
-			current.push({
-				id: `ko-${round}-${i / 2}`,
-				t1: shuffled[i],
-				t2: shuffled[i + 1] || null,
-				w: shuffled[i + 1] ? null : shuffled[i],
-				round,
-				phase: 'knockout' as const
-			});
-		}
-		knockoutMatches = [...current];
+			const shuffled = [...categoryQualified].sort(() => Math.random() - 0.5);
+			let round = 1;
+			let current = [];
 
-		while (current.length > 1) {
-			round++;
-			const next = [];
-			for (let i = 0; i < current.length; i += 2) {
-				next.push({ id: `ko-${round}-${i / 2}`, t1: null, t2: null, w: null, round, phase: 'knockout' as const });
+			for (let i = 0; i < shuffled.length; i += 2) {
+				current.push({
+					id: `ko-${category}-${round}-${i / 2}`,
+					t1: shuffled[i],
+					t2: shuffled[i + 1] || null,
+					w: shuffled[i + 1] ? null : shuffled[i],
+					round,
+					phase: 'knockout' as const,
+					category
+				});
 			}
-			knockoutMatches = [...knockoutMatches, ...next];
-			current = next;
-		}
+			knockoutMatches = [...knockoutMatches, ...current];
+
+			while (current.length > 1) {
+				round++;
+				const next = [];
+				for (let i = 0; i < current.length; i += 2) {
+					next.push({ 
+						id: `ko-${category}-${round}-${i / 2}`, 
+						t1: null, 
+						t2: null, 
+						w: null, 
+						round, 
+						phase: 'knockout' as const,
+						category
+					});
+				}
+				knockoutMatches = [...knockoutMatches, ...next];
+				current = next;
+			}
+		});
 
 		currentPhase = 'knockout';
 	}
@@ -205,13 +284,14 @@
 		const match = knockoutMatches.find(m => m.id === id);
 		if (!match) return;
 
-		const nextRound = knockoutMatches.filter(m => m.round === match.round! + 1);
-		const nextMatch = nextRound[Math.floor(parseInt(match.id.split('-')[2]) / 2)];
+		const nextRound = knockoutMatches.filter(m => m.round === match.round! + 1 && m.category === match.category);
+		const matchIndex = parseInt(match.id.split('-')[3]);
+		const nextMatch = nextRound[Math.floor(matchIndex / 2)];
 
 		if (nextMatch) {
 			knockoutMatches = knockoutMatches.map(m => {
 				if (m.id === nextMatch.id) {
-					return parseInt(match.id.split('-')[2]) % 2 === 0
+					return matchIndex % 2 === 0
 						? { ...m, t1: w }
 						: { ...m, t2: w };
 				}
@@ -219,9 +299,18 @@
 			});
 		}
 
-		const final = knockoutMatches.find(m => m.round === Math.max(...knockoutMatches.map(m => m.round!)));
+		// Controlla se abbiamo un vincitore per questa categoria
+		const categoryMatches = knockoutMatches.filter(m => m.category === match.category);
+		const maxRound = Math.max(...categoryMatches.map(m => m.round!));
+		const final = categoryMatches.find(m => m.round === maxRound);
+		
 		if (final?.w) {
-			winner = final.w;
+			winner[match.category!] = final.w;
+		}
+
+		// Controlla se tutte le categorie hanno un vincitore
+		const allCategoriesFinished = categories.every(cat => winner[cat]);
+		if (allCategoriesFinished) {
 			currentPhase = 'finished';
 		}
 	}
@@ -232,39 +321,52 @@
 		groupStandings = {};
 		groups = {};
 		currentPhase = 'setup';
-		winner = null;
-		qualifiedTeams = [];
+		winner = {};
+		qualifiedTeams = {};
 	}
 
-	$: knockoutRounds = [...new Set(knockoutMatches.map(m => m.round))].sort();
-	$: allGroupMatchesPlayed = groupMatches.length > 0 && groupMatches.every(m => m.w !== null || (m.score1 === m.score2 && m.score1 !== undefined));
+	$: knockoutRoundsByCategory = categories.reduce((acc, category) => {
+		acc[category] = [...new Set(knockoutMatches.filter(m => m.category === category).map(m => m.round))].sort();
+		return acc;
+	}, {} as { [key: string]: number[] });
+
+	$: allGroupMatchesPlayed = groupMatches.length > 0 && groupMatches.every(m => m.score1 !== undefined && m.score2 !== undefined);
 </script>
 
 <svelte:head>
-	<title>Torneo con Gironi e Eliminazione Diretta</title>
+	<title>Torneo con Categorie - Gironi e Eliminazione Diretta</title>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 </svelte:head>
 
 <div class="container my-5 p-4 bg-white rounded shadow">
-	<h1 class="text-center mb-5">Torneo con Gironi e Eliminazione Diretta</h1>
+	<h1 class="text-center mb-5">Torneo con Categorie - Gironi e Eliminazione Diretta</h1>
 
 	{#if currentPhase === 'setup'}
 		<div class="mb-4">
-			<h2>Squadre Registrate ({teams.length})</h2>
+			<h2>Squadre Registrate per Categoria</h2>
 			{#if teams.length === 0}
 				<p class="text-muted">Nessuna squadra registrata</p>
 			{:else}
-				<div class="list-group mb-3">
-					{#each teams as team}
-						<div class="list-group-item d-flex justify-content-between align-items-center">
-							<div>
-								<h5 class="mb-1">{team.teamName}</h5>
-								<small class="text-secondary">{team.category} - {team.coachName}</small>
+				{#each categories as category}
+					<div class="card mb-3">
+						<div class="card-header">
+							<h4>{category} ({teams.filter(t => t.category === category).length} squadre)</h4>
+						</div>
+						<div class="card-body">
+							<div class="list-group">
+								{#each teams.filter(t => t.category === category) as team}
+									<div class="list-group-item d-flex justify-content-between align-items-center">
+										<div>
+											<h6 class="mb-1">{team.teamName}</h6>
+											<small class="text-secondary">{team.coachName}</small>
+										</div>
+									</div>
+								{/each}
 							</div>
 						</div>
-					{/each}
-				</div>
-				<button class="btn btn-primary" on:click={createGroups}>Crea Gironi e Inizia Torneo</button>
+					</div>
+				{/each}
+				<button class="btn btn-primary btn-lg" on:click={createGroups}>Crea Gironi e Inizia Torneo</button>
 			{/if}
 		</div>
 
@@ -272,91 +374,104 @@
 		<div class="mb-4">
 			<h2>Fase a Gironi</h2>
 			
-			<!-- Partite dei Gironi -->
-			<div class="row">
-				{#each Object.entries(groups) as [groupName, groupTeams]}
-					<div class="col-md-6 mb-4">
-						<div class="card">
-							<div class="card-header">
-								<h4>Girone {groupName}</h4>
-							</div>
-							<div class="card-body">
-								<!-- Partite del girone -->
-								{#each groupMatches.filter(m => m.group === groupName) as match}
-									<div class="card mb-2">
-										<div class="card-body p-2">
-											<div class="row align-items-center">
-												<div class="col-4 text-end">{match.t1?.teamName}</div>
-												<div class="col-4 text-center">
-													{#if match.score1 !== undefined && match.score2 !== undefined}
-														<span class="badge bg-primary">{match.score1} - {match.score2}</span>
-													{:else}
-														<div class="d-flex">
-															<input type="number" class="form-control form-control-sm me-1" 
-																bind:value={match.score1} min="0" style="width: 50px;">
-															<input type="number" class="form-control form-control-sm ms-1" 
-																bind:value={match.score2} min="0" style="width: 50px;">
-														</div>
-														<button class="btn btn-sm btn-outline-primary mt-1"
-															on:click={() => setGroupResult(match.id, match.score1 || 0, match.score2 || 0)}>
-															Conferma
-														</button>
-													{/if}
-												</div>
-												<div class="col-4">{match.t2?.teamName}</div>
-											</div>
-										</div>
+			{#each categories as category}
+				<div class="mb-5">
+					<h3 class="text-primary mb-4">Categoria {category}</h3>
+					<div class="row">
+						{#each Object.entries(groups).filter(([groupName]) => groupName.startsWith(category)) as [groupName, groupTeams]}
+							<div class="col-lg-6 mb-4">
+								<div class="card">
+									<div class="card-header">
+										<h5>Girone {groupName.split('-')[1]}</h5>
 									</div>
-								{/each}
+									<div class="card-body">
+										<!-- Partite del girone -->
+										{#each groupMatches.filter(m => m.group === groupName) as match}
+											<div class="card mb-2">
+												<div class="card-body p-3">
+													<div class="row align-items-center">
+														<div class="col-3 text-end fw-semibold">{match.t1?.teamName}</div>
+														<div class="col-6 text-center">
+															{#if match.score1 !== undefined && match.score2 !== undefined}
+																<span class="badge bg-primary fs-6">{match.score1} - {match.score2}</span>
+																<button class="btn btn-sm btn-outline-secondary ms-2"
+																	on:click={() => {match.score1 = undefined; match.score2 = undefined; groupMatches = [...groupMatches];}}>
+																	Modifica
+																</button>
+															{:else}
+																<div class="d-flex justify-content-center align-items-center gap-2">
+																	<input type="number" class="form-control form-control-sm text-center" 
+																		bind:value={match.score1} min="0" max="99" style="width: 60px;" placeholder="0">
+																	<span>-</span>
+																	<input type="number" class="form-control form-control-sm text-center" 
+																		bind:value={match.score2} min="0" max="99" style="width: 60px;" placeholder="0">
+																</div>
+																<button class="btn btn-sm btn-success mt-2"
+																	disabled={match.score1 === undefined || match.score2 === undefined}
+																	on:click={() => setGroupResult(match.id, match.score1 || 0, match.score2 || 0)}>
+																	Conferma Risultato
+																</button>
+															{/if}
+														</div>
+														<div class="col-3 fw-semibold">{match.t2?.teamName}</div>
+													</div>
+												</div>
+											</div>
+										{/each}
 
-								<!-- Classifica del girone -->
-								<div class="mt-3">
-									<h6>Classifica</h6>
-									<div class="table-responsive">
-										<table class="table table-sm">
-											<thead>
-												<tr>
-													<th>Pos</th>
-													<th>Squadra</th>
-													<th>P</th>
-													<th>V</th>
-													<th>N</th>
-													<th>S</th>
-													<th>GF</th>
-													<th>GS</th>
-													<th>DR</th>
-													<th>Punti</th>
-												</tr>
-											</thead>
-											<tbody>
-												{#each groupStandings[groupName] || [] as standing, index}
-													<tr class={index < 2 ? 'table-success' : ''}>
-														<td>{index + 1}</td>
-														<td>{standing.team.teamName}</td>
-														<td>{standing.played}</td>
-														<td>{standing.won}</td>
-														<td>{standing.drawn}</td>
-														<td>{standing.lost}</td>
-														<td>{standing.goalsFor}</td>
-														<td>{standing.goalsAgainst}</td>
-														<td>{standing.goalDifference > 0 ? '+' : ''}{standing.goalDifference}</td>
-														<td><strong>{standing.points}</strong></td>
-													</tr>
-												{/each}
-											</tbody>
-										</table>
+										<!-- Classifica del girone -->
+										<div class="mt-4">
+											<h6 class="text-success">Classifica</h6>
+											<div class="table-responsive">
+												<table class="table table-sm table-striped">
+													<thead class="table-dark">
+														<tr>
+															<th>Pos</th>
+															<th>Squadra</th>
+															<th>P</th>
+															<th>V</th>
+															<th>N</th>
+															<th>S</th>
+															<th>GF</th>
+															<th>GS</th>
+															<th>DR</th>
+															<th>Punti</th>
+														</tr>
+													</thead>
+													<tbody>
+														{#each groupStandings[groupName] || [] as standing, index}
+															<tr class={index < 2 ? 'table-success' : ''}>
+																<td><strong>{index + 1}</strong></td>
+																<td>{standing.team.teamName}</td>
+																<td>{standing.played}</td>
+																<td>{standing.won}</td>
+																<td>{standing.drawn}</td>
+																<td>{standing.lost}</td>
+																<td>{standing.goalsFor}</td>
+																<td>{standing.goalsAgainst}</td>
+																<td class={standing.goalDifference > 0 ? 'text-success' : standing.goalDifference < 0 ? 'text-danger' : ''}>
+																	{standing.goalDifference > 0 ? '+' : ''}{standing.goalDifference}
+																</td>
+																<td><strong class="text-primary">{standing.points}</strong></td>
+															</tr>
+														{/each}
+													</tbody>
+												</table>
+											</div>
+											<small class="text-muted">Le prime 2 squadre si qualificano per la fase eliminatoria</small>
+										</div>
 									</div>
 								</div>
 							</div>
-						</div>
+						{/each}
 					</div>
-				{/each}
-			</div>
+				</div>
+			{/each}
 
 			{#if allGroupMatchesPlayed}
-				<div class="text-center mt-4">
+				<div class="text-center mt-5">
 					<button class="btn btn-success btn-lg" on:click={startKnockoutPhase}>
-						Inizia Fase Eliminazione Diretta
+						🏆 Inizia Fase Eliminazione Diretta
 					</button>
 				</div>
 			{/if}
@@ -365,59 +480,84 @@
 	{:else if currentPhase === 'knockout'}
 		<div class="mb-4">
 			<h2>Fase Eliminazione Diretta</h2>
-			<p class="text-muted mb-4">Squadre qualificate: {qualifiedTeams.map(t => t.teamName).join(', ')}</p>
 
-			<div class="d-flex flex-wrap gap-4 justify-content-center overflow-auto">
-				{#each knockoutRounds as round}
-					<div class="border rounded p-3" style="min-width: 250px; max-width: 250px;">
-						<h3 class="text-center mb-3">
-							{round === Math.max(...knockoutRounds) ? 'FINALE' : 
-							 round === Math.max(...knockoutRounds) - 1 ? 'SEMIFINALE' :
-							 round === Math.max(...knockoutRounds) - 2 ? 'QUARTI' : `TURNO ${round}`}
-						</h3>
-						{#each knockoutMatches.filter(m => m.round === round) as match}
-							<div class="card mb-3">
-								<div class="card-body p-2">
-									<div class="d-flex flex-column gap-1">
-										<div class="p-2 rounded 
-											{match.w === match.t1 ? 'bg-success text-white' : 'bg-light'}">
-											{match.t1?.teamName || 'TBD'}
-										</div>
-										<div class="p-2 rounded 
-											{match.w === match.t2 ? 'bg-success text-white' : 'bg-light'}">
-											{match.t2?.teamName || 'TBD'}
+			{#each categories as category}
+				<div class="mb-5">
+					<h3 class="text-primary mb-3">Categoria {category}</h3>
+					<p class="text-muted mb-4">Squadre qualificate: {qualifiedTeams[category]?.map(t => t.teamName).join(', ') || 'Nessuna'}</p>
+
+					<div class="d-flex flex-wrap gap-4 justify-content-center overflow-auto">
+						{#each knockoutRoundsByCategory[category] || [] as round}
+							<div class="border rounded p-3" style="min-width: 280px; max-width: 280px;">
+								<h4 class="text-center mb-3">
+									{round === Math.max(...(knockoutRoundsByCategory[category] || [])) ? '🏆 FINALE' : 
+									 round === Math.max(...(knockoutRoundsByCategory[category] || [])) - 1 ? '🥇 SEMIFINALE' :
+									 round === Math.max(...(knockoutRoundsByCategory[category] || [])) - 2 ? '🥈 QUARTI' : `TURNO ${round}`}
+								</h4>
+								{#each knockoutMatches.filter(m => m.round === round && m.category === category) as match}
+									<div class="card mb-3">
+										<div class="card-body p-2">
+											<div class="d-flex flex-column gap-1">
+												<div class="p-2 rounded border
+													{match.w === match.t1 ? 'bg-success text-white' : 'bg-light'}">
+													<strong>{match.t1?.teamName || 'TBD'}</strong>
+												</div>
+												<div class="text-center text-muted small">VS</div>
+												<div class="p-2 rounded border
+													{match.w === match.t2 ? 'bg-success text-white' : 'bg-light'}">
+													<strong>{match.t2?.teamName || 'TBD'}</strong>
+												</div>
+											</div>
+
+											{#if match.t1 && match.t2 && !match.w}
+												<div class="d-flex gap-2 mt-3">
+													<button class="btn btn-outline-primary btn-sm flex-grow-1"
+														on:click={() => setKnockoutWinner(match.id, match.t1)}>
+														{match.t1.teamName}
+													</button>
+													<button class="btn btn-outline-primary btn-sm flex-grow-1"
+														on:click={() => setKnockoutWinner(match.id, match.t2)}>
+														{match.t2.teamName}
+													</button>
+												</div>
+											{:else if match.w}
+												<div class="mt-3 text-center">
+													<span class="badge bg-success fs-6">🎉 Vince: {match.w.teamName}</span>
+												</div>
+											{/if}
 										</div>
 									</div>
-
-									{#if match.t1 && match.t2 && !match.w}
-										<div class="d-flex justify-content-between mt-3">
-											<button class="btn btn-outline-primary btn-sm flex-grow-1 me-2"
-												on:click={() => setKnockoutWinner(match.id, match.t1)}>
-												{match.t1.teamName}
-											</button>
-											<button class="btn btn-outline-primary btn-sm flex-grow-1"
-												on:click={() => setKnockoutWinner(match.id, match.t2)}>
-												{match.t2.teamName}
-											</button>
-										</div>
-									{:else if match.w}
-										<p class="mt-3 mb-0 text-center fw-semibold">Vince: {match.w.teamName}</p>
-									{/if}
-								</div>
+								{/each}
 							</div>
 						{/each}
 					</div>
-				{/each}
-			</div>
+				</div>
+			{/each}
 		</div>
 
 	{:else if currentPhase === 'finished'}
-		<div class="alert alert-warning text-center fs-4 fw-bold py-3">
-			🏆 VINCITORE DEL TORNEO: {winner?.teamName} 🏆
+		<div class="mb-4">
+			<h2 class="text-center mb-4">🏆 VINCITORI DEL TORNEO 🏆</h2>
+			<div class="row justify-content-center">
+				{#each categories as category}
+					{#if winner[category]}
+						<div class="col-md-4 mb-3">
+							<div class="card text-center border-warning">
+								<div class="card-body bg-warning bg-opacity-10">
+									<h3 class="card-title text-warning">🏆</h3>
+									<h4 class="card-title">{category}</h4>
+									<h5 class="card-text text-primary">{winner[category]?.teamName}</h5>
+									<small class="text-muted">Allenatore: {winner[category]?.coachName}</small>
+								</div>
+							</div>
+						</div>
+					{/if}
+				{/each}
+			</div>
 		</div>
 	{/if}
 
-	<div class="text-center mt-4">
-		<button class="btn btn-danger" on:click={reset}>Reset Torneo</button>
+	<div class="text-center mt-5">
+		<button class="btn btn-danger" on:click={reset}>🔄 Reset Torneo</button>
 	</div>
 </div>
