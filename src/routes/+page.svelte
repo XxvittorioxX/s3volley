@@ -79,7 +79,7 @@
 			<label for="email" class="form-label">Email:</label>
 			<input
 				id="email"
-				type="email"
+				type="email"			
 				bind:value={email}
 				class="form-control"
 				required
