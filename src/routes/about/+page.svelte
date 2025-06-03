@@ -69,67 +69,45 @@
 		groups = {};
 		groupMatches = [];
 		groupStandings = {};
-		const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-		let groupIndex = 0;
 
-		// Crea gironi per ogni categoria
+		// Crea UN SOLO girone per ogni categoria
 		Object.entries(teamsByCategory).forEach(([category, categoryTeams]) => {
 			// Mescola le squadre della categoria
 			const shuffled = [...categoryTeams].sort(() => Math.random() - 0.5);
 			
-			// Calcola numero di gironi per questa categoria (massimo 4 squadre per girone)
-			const numGroupsForCategory = Math.ceil(shuffled.length / 4);
-			
-			// Distribuisci squadre nei gironi
-			for (let i = 0; i < numGroupsForCategory; i++) {
-				const groupName = `${category}-${groupNames[groupIndex % groupNames.length]}`;
-				groups[groupName] = [];
-				groupIndex++;
+			// Crea un singolo girone per questa categoria
+			const groupName = category;
+			groups[groupName] = shuffled;
+
+			// Crea partite del girone (tutti contro tutti)
+			for (let i = 0; i < shuffled.length; i++) {
+				for (let j = i + 1; j < shuffled.length; j++) {
+					groupMatches.push({
+						id: `${groupName}-${i}-${j}`,
+						t1: shuffled[i],
+						t2: shuffled[j],
+						w: null,
+						score1: undefined,
+						score2: undefined,
+						group: groupName,
+						phase: 'group',
+						category: category
+					});
+				}
 			}
 
-			const categoryGroupNames = Object.keys(groups).filter(name => name.startsWith(category));
-			
-			shuffled.forEach((team, index) => {
-				const targetGroupIndex = index % categoryGroupNames.length;
-				const targetGroupName = categoryGroupNames[targetGroupIndex];
-				groups[targetGroupName].push(team);
-			});
-
-			// Crea partite dei gironi per questa categoria
-			categoryGroupNames.forEach(groupName => {
-				const groupTeams = groups[groupName];
-				for (let i = 0; i < groupTeams.length; i++) {
-					for (let j = i + 1; j < groupTeams.length; j++) {
-						groupMatches.push({
-							id: `${groupName}-${i}-${j}`,
-							t1: groupTeams[i],
-							t2: groupTeams[j],
-							w: null,
-							score1: undefined,
-							score2: undefined,
-							group: groupName,
-							phase: 'group',
-							category: category
-						});
-					}
-				}
-			});
-
-			// Inizializza classifiche gironi per questa categoria
-			categoryGroupNames.forEach(groupName => {
-				const groupTeams = groups[groupName];
-				groupStandings[groupName] = groupTeams.map(team => ({
-					team,
-					played: 0,
-					won: 0,
-					drawn: 0,
-					lost: 0,
-					points: 0,
-					goalsFor: 0,
-					goalsAgainst: 0,
-					goalDifference: 0
-				}));
-			});
+			// Inizializza classifica girone per questa categoria
+			groupStandings[groupName] = shuffled.map(team => ({
+				team,
+				played: 0,
+				won: 0,
+				drawn: 0,
+				lost: 0,
+				points: 0,
+				goalsFor: 0,
+				goalsAgainst: 0,
+				goalDifference: 0
+			}));
 		});
 
 		currentPhase = 'group';
@@ -213,18 +191,19 @@
 	}
 
 	function startKnockoutPhase() {
-		// Prendi le prime 2 di ogni girone per categoria
+		// Prendi le prime metà delle squadre di ogni girone (minimo 2, massimo la metà)
 		qualifiedTeams = {};
 		
 		categories.forEach(category => {
 			qualifiedTeams[category] = [];
 			
-			Object.entries(groupStandings).forEach(([groupName, standings]) => {
-				if (groupName.startsWith(category)) {
-					const qualified = standings.slice(0, 2).map(s => s.team);
-					qualifiedTeams[category].push(...qualified);
-				}
-			});
+			const standings = groupStandings[category];
+			if (standings) {
+				// Qualifica la metà delle squadre (minimo 2)
+				const numQualified = Math.max(2, Math.floor(standings.length / 2));
+				const qualified = standings.slice(0, numQualified).map(s => s.team);
+				qualifiedTeams[category] = qualified;
+			}
 
 			if (qualifiedTeams[category].length < 2) {
 				alert(`Non ci sono abbastanza squadre qualificate per la categoria ${category}!`);
@@ -377,93 +356,93 @@
 			{#each categories as category}
 				<div class="mb-5">
 					<h3 class="text-primary mb-4">Categoria {category}</h3>
-					<div class="row">
-						{#each Object.entries(groups).filter(([groupName]) => groupName.startsWith(category)) as [groupName, groupTeams]}
-							<div class="col-lg-6 mb-4">
-								<div class="card">
-									<div class="card-header">
-										<h5>Girone {groupName.split('-')[1]}</h5>
-									</div>
-									<div class="card-body">
-										<!-- Partite del girone -->
-										{#each groupMatches.filter(m => m.group === groupName) as match}
-											<div class="card mb-2">
-												<div class="card-body p-3">
-													<div class="row align-items-center">
-														<div class="col-3 text-end fw-semibold">{match.t1?.teamName}</div>
-														<div class="col-6 text-center">
-															{#if match.score1 !== undefined && match.score2 !== undefined}
-																<span class="badge bg-primary fs-6">{match.score1} - {match.score2}</span>
-																<button class="btn btn-sm btn-outline-secondary ms-2"
-																	on:click={() => {match.score1 = undefined; match.score2 = undefined; groupMatches = [...groupMatches];}}>
-																	Modifica
-																</button>
-															{:else}
-																<div class="d-flex justify-content-center align-items-center gap-2">
-																	<input type="number" class="form-control form-control-sm text-center" 
-																		bind:value={match.score1} min="0" max="99" style="width: 60px;" placeholder="0">
-																	<span>-</span>
-																	<input type="number" class="form-control form-control-sm text-center" 
-																		bind:value={match.score2} min="0" max="99" style="width: 60px;" placeholder="0">
-																</div>
-																<button class="btn btn-sm btn-success mt-2"
-																	disabled={match.score1 === undefined || match.score2 === undefined}
-																	on:click={() => setGroupResult(match.id, match.score1 || 0, match.score2 || 0)}>
-																	Conferma Risultato
-																</button>
-															{/if}
-														</div>
-														<div class="col-3 fw-semibold">{match.t2?.teamName}</div>
+					<div class="row justify-content-center">
+						<div class="col-lg-8">
+							<div class="card">
+								<div class="card-header">
+									<h5>Girone Unico - {category}</h5>
+								</div>
+								<div class="card-body">
+									<!-- Partite del girone -->
+									{#each groupMatches.filter(m => m.group === category) as match}
+										<div class="card mb-2">
+											<div class="card-body p-3">
+												<div class="row align-items-center">
+													<div class="col-3 text-end fw-semibold">{match.t1?.teamName}</div>
+													<div class="col-6 text-center">
+														{#if match.score1 !== undefined && match.score2 !== undefined}
+															<span class="badge bg-primary fs-6">{match.score1} - {match.score2}</span>
+															<button class="btn btn-sm btn-outline-secondary ms-2"
+																on:click={() => {match.score1 = undefined; match.score2 = undefined; groupMatches = [...groupMatches];}}>
+																Modifica
+															</button>
+														{:else}
+															<div class="d-flex justify-content-center align-items-center gap-2">
+																<input type="number" class="form-control form-control-sm text-center" 
+																	bind:value={match.score1} min="0" max="99" style="width: 60px;" placeholder="0">
+																<span>-</span>
+																<input type="number" class="form-control form-control-sm text-center" 
+																	bind:value={match.score2} min="0" max="99" style="width: 60px;" placeholder="0">
+															</div>
+															<button class="btn btn-sm btn-success mt-2"
+																disabled={match.score1 === undefined || match.score2 === undefined}
+																on:click={() => setGroupResult(match.id, match.score1 || 0, match.score2 || 0)}>
+																Conferma Risultato
+															</button>
+														{/if}
 													</div>
+													<div class="col-3 fw-semibold">{match.t2?.teamName}</div>
 												</div>
 											</div>
-										{/each}
-
-										<!-- Classifica del girone -->
-										<div class="mt-4">
-											<h6 class="text-success">Classifica</h6>
-											<div class="table-responsive">
-												<table class="table table-sm table-striped">
-													<thead class="table-dark">
-														<tr>
-															<th>Pos</th>
-															<th>Squadra</th>
-															<th>P</th>
-															<th>V</th>
-															<th>N</th>
-															<th>S</th>
-															<th>GF</th>
-															<th>GS</th>
-															<th>DR</th>
-															<th>Punti</th>
-														</tr>
-													</thead>
-													<tbody>
-														{#each groupStandings[groupName] || [] as standing, index}
-															<tr class={index < 2 ? 'table-success' : ''}>
-																<td><strong>{index + 1}</strong></td>
-																<td>{standing.team.teamName}</td>
-																<td>{standing.played}</td>
-																<td>{standing.won}</td>
-																<td>{standing.drawn}</td>
-																<td>{standing.lost}</td>
-																<td>{standing.goalsFor}</td>
-																<td>{standing.goalsAgainst}</td>
-																<td class={standing.goalDifference > 0 ? 'text-success' : standing.goalDifference < 0 ? 'text-danger' : ''}>
-																	{standing.goalDifference > 0 ? '+' : ''}{standing.goalDifference}
-																</td>
-																<td><strong class="text-primary">{standing.points}</strong></td>
-															</tr>
-														{/each}
-													</tbody>
-												</table>
-											</div>
-											<small class="text-muted">Le prime 2 squadre si qualificano per la fase eliminatoria</small>
 										</div>
+									{/each}
+
+									<!-- Classifica del girone -->
+									<div class="mt-4">
+										<h6 class="text-success">Classifica {category}</h6>
+										<div class="table-responsive">
+											<table class="table table-sm table-striped">
+												<thead class="table-dark">
+													<tr>
+														<th>Pos</th>
+														<th>Squadra</th>
+														<th>P</th>
+														<th>V</th>
+														<th>N</th>
+														<th>S</th>
+														<th>GF</th>
+														<th>GS</th>
+														<th>DR</th>
+														<th>Punti</th>
+													</tr>
+												</thead>
+												<tbody>
+													{#each groupStandings[category] || [] as standing, index}
+														<tr class={index < Math.max(2, Math.floor((groupStandings[category]?.length || 0) / 2)) ? 'table-success' : ''}>
+															<td><strong>{index + 1}</strong></td>
+															<td>{standing.team.teamName}</td>
+															<td>{standing.played}</td>
+															<td>{standing.won}</td>
+															<td>{standing.drawn}</td>
+															<td>{standing.lost}</td>
+															<td>{standing.goalsFor}</td>
+															<td>{standing.goalsAgainst}</td>
+															<td class={standing.goalDifference > 0 ? 'text-success' : standing.goalDifference < 0 ? 'text-danger' : ''}>
+																{standing.goalDifference > 0 ? '+' : ''}{standing.goalDifference}
+															</td>
+															<td><strong class="text-primary">{standing.points}</strong></td>
+														</tr>
+													{/each}
+												</tbody>
+											</table>
+										</div>
+										<small class="text-muted">
+											Le prime {Math.max(2, Math.floor((groupStandings[category]?.length || 0) / 2))} squadre si qualificano per la fase eliminatoria
+										</small>
 									</div>
 								</div>
 							</div>
-						{/each}
+						</div>
 					</div>
 				</div>
 			{/each}
