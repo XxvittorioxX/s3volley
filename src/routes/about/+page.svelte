@@ -190,6 +190,14 @@
 		groupMatches = [...groupMatches];
 	}
 
+	// Nuova funzione per aggiornamento automatico dei risultati
+	function updateMatchResult(matchId: string) {
+		const match = groupMatches.find(m => m.id === matchId);
+		if (match && match.score1 !== undefined && match.score2 !== undefined) {
+			setGroupResult(matchId, match.score1, match.score2);
+		}
+	}
+
 	function startKnockoutPhase() {
 		// Prendi le prime metà delle squadre di ogni girone (minimo 2, massimo la metà)
 		qualifiedTeams = {};
@@ -379,10 +387,12 @@
 														{:else}
 															<div class="d-flex justify-content-center align-items-center gap-2">
 																<input type="number" class="form-control form-control-sm text-center" 
-																	bind:value={match.score1} min="0" max="99" style="width: 60px;" placeholder="0">
+																	bind:value={match.score1} min="0" max="99" style="width: 60px;" placeholder="0"
+																	on:input={() => updateMatchResult(match.id)}>
 																<span>-</span>
 																<input type="number" class="form-control form-control-sm text-center" 
-																	bind:value={match.score2} min="0" max="99" style="width: 60px;" placeholder="0">
+																	bind:value={match.score2} min="0" max="99" style="width: 60px;" placeholder="0"
+																	on:input={() => updateMatchResult(match.id)}>
 															</div>
 															<button class="btn btn-sm btn-success mt-2"
 																disabled={match.score1 === undefined || match.score2 === undefined}
