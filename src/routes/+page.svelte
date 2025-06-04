@@ -112,185 +112,252 @@
 	}
 </script>
 
-<section>
-	<h1>Registrazione Squadra</h1>
-	
-	<form on:submit|preventDefault={handleSubmit}>
-		<div class="form-group">
-			<label for="teamName">Nome Squadra *</label>
-			<input 
-				type="text" 
-				id="teamName" 
-				bind:value={teamName}
-				on:blur={() => validateField('teamName', teamName)}
-				class:error={errors.teamName !== ''}
-				placeholder="Inserisci il nome della squadra"
-			/>
-			{#if errors.teamName}
-				<span class="error-message">{errors.teamName}</span>
-			{/if}
-		</div>
+<div class="container mt-5">
+	<div class="row justify-content-center">
+		<div class="col-lg-8 col-md-10">
+			<div class="card shadow-lg border-0">
+				<div class="card-header bg-primary text-white text-center py-4">
+					<h1 class="h3 mb-0">
+						<i class="fas fa-users me-2"></i>
+						Registrazione Squadra
+					</h1>
+				</div>
+				<div class="card-body p-4">
+					<form on:submit|preventDefault={handleSubmit} novalidate>
+						<div class="row">
+							<div class="col-md-6 mb-3">
+								<label for="teamName" class="form-label fw-bold">
+									<i class="fas fa-flag me-1"></i>
+									Nome Squadra *
+								</label>
+								<input 
+									type="text" 
+									id="teamName" 
+									class="form-control {errors.teamName ? 'is-invalid' : teamName ? 'is-valid' : ''}"
+									bind:value={teamName}
+									on:blur={() => validateField('teamName', teamName)}
+									placeholder="Inserisci il nome della squadra"
+								/>
+								{#if errors.teamName}
+									<div class="invalid-feedback">
+										<i class="fas fa-exclamation-circle me-1"></i>
+										{errors.teamName}
+									</div>
+								{/if}
+							</div>
 
-		<div class="form-group">
-			<label for="category">Categoria *</label>
-			<select 
-				id="category" 
-				bind:value={category}
-				on:blur={() => validateField('category', category)}
-				class:error={errors.category !== ''}
-			>
-				<option value="">Seleziona una categoria</option>
-				<option value="Under 10">Under 10</option>
-				<option value="Under 12">Under 12</option>
-				<option value="Under 14">Under 14</option>
-				<option value="Under 16">Under 16</option>
-				<option value="Under 18">Under 18</option>
-				<option value="Seniores">Seniores</option>
-			</select>
-			{#if errors.category}
-				<span class="error-message">{errors.category}</span>
-			{/if}
-		</div>
+							<div class="col-md-6 mb-3">
+								<label for="category" class="form-label fw-bold">
+									<i class="fas fa-layer-group me-1"></i>
+									Categoria *
+								</label>
+								<select 
+									id="category" 
+									class="form-select {errors.category ? 'is-invalid' : category ? 'is-valid' : ''}"
+									bind:value={category}
+									on:blur={() => validateField('category', category)}
+								>
+									<option value="">Seleziona una categoria</option>
+									<option value="Under 10">Under 10</option>
+									<option value="Under 12">Under 12</option>
+									<option value="Under 14">Under 14</option>
+									<option value="Under 16">Under 16</option>
+									<option value="Under 18">Under 18</option>
+									<option value="Seniores">Seniores</option>
+								</select>
+								{#if errors.category}
+									<div class="invalid-feedback">
+										<i class="fas fa-exclamation-circle me-1"></i>
+										{errors.category}
+									</div>
+								{/if}
+							</div>
+						</div>
 
-		<div class="form-group">
-			<label for="coachName">Nome Responsabile *</label>
-			<input 
-				type="text" 
-				id="coachName" 
-				bind:value={coachName}
-				on:blur={() => validateField('coachName', coachName)}
-				class:error={errors.coachName !== ''}
-				placeholder="Inserisci il nome del responsabile"
-			/>
-			{#if errors.coachName}
-				<span class="error-message">{errors.coachName}</span>
-			{/if}
-		</div>
+						<div class="mb-3">
+							<label for="coachName" class="form-label fw-bold">
+								<i class="fas fa-user-tie me-1"></i>
+								Nome Responsabile *
+							</label>
+							<input 
+								type="text" 
+								id="coachName" 
+								class="form-control {errors.coachName ? 'is-invalid' : coachName ? 'is-valid' : ''}"
+								bind:value={coachName}
+								on:blur={() => validateField('coachName', coachName)}
+								placeholder="Inserisci il nome del responsabile"
+							/>
+							{#if errors.coachName}
+								<div class="invalid-feedback">
+									<i class="fas fa-exclamation-circle me-1"></i>
+									{errors.coachName}
+								</div>
+							{/if}
+						</div>
 
-		<div class="form-group">
-			<label for="email">Email *</label>
-			<input 
-				type="email" 
-				id="email" 
-				bind:value={email}
-				on:blur={() => validateField('email', email)}
-				class:error={errors.email !== ''}
-				placeholder="inserisci@email.com"
-			/>
-			{#if errors.email}
-				<span class="error-message">{errors.email}</span>
-			{/if}
-		</div>
+						<div class="row">
+							<div class="col-md-6 mb-3">
+								<label for="email" class="form-label fw-bold">
+									<i class="fas fa-envelope me-1"></i>
+									Email *
+								</label>
+								<input 
+									type="email" 
+									id="email" 
+									class="form-control {errors.email ? 'is-invalid' : email && !errors.email ? 'is-valid' : ''}"
+									bind:value={email}
+									on:blur={() => validateField('email', email)}
+									placeholder="inserisci@email.com"
+								/>
+								{#if errors.email}
+									<div class="invalid-feedback">
+										<i class="fas fa-exclamation-circle me-1"></i>
+										{errors.email}
+									</div>
+								{/if}
+							</div>
 
-		<div class="form-group">
-			<label for="phone">Telefono *</label>
-			<input 
-				type="tel" 
-				id="phone" 
-				bind:value={phone}
-				on:blur={() => validateField('phone', phone)}
-				class:error={errors.phone !== ''}
-				placeholder="+39 123 456 7890"
-			/>
-			{#if errors.phone}
-				<span class="error-message">{errors.phone}</span>
-			{/if}
-		</div>
+							<div class="col-md-6 mb-3">
+								<label for="phone" class="form-label fw-bold">
+									<i class="fas fa-phone me-1"></i>
+									Telefono *
+								</label>
+								<input 
+									type="tel" 
+									id="phone" 
+									class="form-control {errors.phone ? 'is-invalid' : phone && !errors.phone ? 'is-valid' : ''}"
+									bind:value={phone}
+									on:blur={() => validateField('phone', phone)}
+									placeholder="+39 123 456 7890"
+								/>
+								{#if errors.phone}
+									<div class="invalid-feedback">
+										<i class="fas fa-exclamation-circle me-1"></i>
+										{errors.phone}
+									</div>
+								{/if}
+							</div>
+						</div>
 
-		<button 
-			type="submit" 
-			class="submit-btn"
-			class:disabled={!isFormValid}
-			disabled={!isFormValid}
-		>
-			{isFormValid ? 'Registra Squadra' : 'Compila tutti i campi obbligatori'}
-		</button>
-	</form>
-</section>
+						<div class="d-grid gap-2 mt-4">
+							<button 
+								type="submit" 
+								class="btn btn-lg {isFormValid ? 'btn-success' : 'btn-secondary'}"
+								disabled={!isFormValid}
+							>
+								{#if isFormValid}
+									<i class="fas fa-check-circle me-2"></i>
+									Registra Squadra
+								{:else}
+									<i class="fas fa-exclamation-triangle me-2"></i>
+									Compila tutti i campi obbligatori
+								{/if}
+							</button>
+						</div>
+
+						{#if !isFormValid}
+							<div class="alert alert-info mt-3 d-flex align-items-center">
+								<i class="fas fa-info-circle me-2"></i>
+								<small>Tutti i campi contrassegnati con * sono obbligatori</small>
+							</div>
+						{/if}
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Aggiungi questo nel tuo app.html o come import nel componente principale -->
+<svelte:head>
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</svelte:head>
 
 <style>
-	section {
-		max-width: 600px;
-		margin: 2rem auto;
-		padding: 2rem;
-		background-color: #f5f5f5;
-		border-radius: 12px;
-		box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
-		font-family: sans-serif;
+	:global(.card) {
+		border-radius: 15px;
+		overflow: hidden;
 	}
 
-	h1 {
-		text-align: center;
-		color: #003366;
-		margin-bottom: 2rem;
-	}
-
-	.form-group {
-		margin-bottom: 1.5rem;
-	}
-
-	label {
-		display: block;
-		margin-bottom: 0.5rem;
-		font-weight: bold;
-		color: #003366;
-	}
-
-	input, select {
-		width: 100%;
-		padding: 0.75rem;
-		border: 2px solid #ddd;
-		border-radius: 6px;
-		font-size: 1rem;
-		transition: border-color 0.3s ease;
-		box-sizing: border-box;
-	}
-
-	input:focus, select:focus {
-		outline: none;
-		border-color: #006eff;
-	}
-
-	input.error, select.error {
-		border-color: #e74c3c;
-		background-color: #fdf2f2;
-	}
-
-	.error-message {
-		display: block;
-		color: #e74c3c;
-		font-size: 0.875rem;
-		margin-top: 0.25rem;
-	}
-
-	.submit-btn {
-		width: 100%;
-		padding: 1rem;
-		background-color: #006eff;
-		color: white;
+	:global(.card-header) {
+		background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
 		border: none;
-		border-radius: 6px;
-		font-size: 1.1rem;
-		font-weight: bold;
-		cursor: pointer;
-		transition: background-color 0.3s ease;
 	}
 
-	.submit-btn:hover:not(.disabled) {
-		background-color: #0056cc;
+	:global(.form-label) {
+		color: #495057;
+		font-size: 0.95rem;
 	}
 
-	.submit-btn.disabled {
-		background-color: #ccc;
-		cursor: not-allowed;
-		opacity: 0.6;
+	:global(.form-control:focus),
+	:global(.form-select:focus) {
+		border-color: #007bff;
+		box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 	}
 
-	/* Stili responsivi */
+	:global(.btn-success) {
+		background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+		border: none;
+		font-weight: 600;
+		transition: all 0.3s ease;
+	}
+
+	:global(.btn-success:hover) {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+	}
+
+	:global(.btn-secondary) {
+		background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+		border: none;
+		font-weight: 600;
+	}
+
+	:global(.alert-info) {
+		background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+		border: 1px solid #b6d4da;
+		border-radius: 10px;
+	}
+
+	:global(.is-valid) {
+		border-color: #28a745;
+	}
+
+	:global(.is-invalid) {
+		border-color: #dc3545;
+	}
+
+	:global(.invalid-feedback) {
+		font-size: 0.875rem;
+		font-weight: 500;
+	}
+
+	/* Animazioni personalizzate */
+	:global(.card) {
+		animation: slideInUp 0.6s ease-out;
+	}
+
+	@keyframes slideInUp {
+		from {
+			opacity: 0;
+			transform: translateY(30px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	/* Responsive migliorata */
 	@media (max-width: 768px) {
-		section {
-			margin: 1rem;
-			padding: 1rem;
+		:global(.container) {
+			padding-left: 10px;
+			padding-right: 10px;
+		}
+		
+		:global(.card-body) {
+			padding: 1.5rem !important;
 		}
 	}
 </style>
