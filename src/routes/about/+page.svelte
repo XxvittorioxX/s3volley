@@ -136,7 +136,7 @@
 		const groupTeams = groups[groupName];
 		if (!groupTeams) return;
 
-		// Reset completo delle statistiche
+		// Reset completo delle statistiche - mantieni i riferimenti alle squadre originali
 		groupStandings[groupName] = groupTeams.map(team => ({
 			team,
 			played: 0,
@@ -153,11 +153,16 @@
 			m.score2 !== undefined
 		);
 
+		console.log(`Ricalcolando ${groupName}: ${groupMatchesPlayed.length} partite giocate`);
+
 		groupMatchesPlayed.forEach(match => {
-			const standing1 = groupStandings[groupName].find(s => s.team.teamName === match.t1!.teamName);
-			const standing2 = groupStandings[groupName].find(s => s.team.teamName === match.t2!.teamName);
+			// Usa il riferimento diretto alla squadra invece del nome
+			const standing1 = groupStandings[groupName].find(s => s.team === match.t1);
+			const standing2 = groupStandings[groupName].find(s => s.team === match.t2);
 
 			if (standing1 && standing2) {
+				console.log(`Match: ${match.t1?.teamName} ${match.score1} - ${match.score2} ${match.t2?.teamName}`);
+				
 				standing1.played++;
 				standing2.played++;
 
@@ -166,23 +171,35 @@
 					standing1.won++;
 					standing1.points += 3;
 					standing2.lost++;
+					console.log(`${match.t1?.teamName} vince`);
 				} else if (match.score2! > match.score1!) {
 					// Squadra 2 vince
 					standing2.won++;
 					standing2.points += 3;
 					standing1.lost++;
+					console.log(`${match.t2?.teamName} vince`);
 				} else {
 					// Pareggio
 					standing1.drawn++;
 					standing2.drawn++;
 					standing1.points += 1;
 					standing2.points += 1;
+					console.log(`Pareggio`);
 				}
+			} else {
+				console.error(`Squadre non trovate per match:`, match.t1?.teamName, match.t2?.teamName);
 			}
 		});
 
-		// Ordina per punti (decrescente)
-		groupStandings[groupName].sort((a, b) => b.points - a.points);
+		// Ordina per punti (decrescente), poi per nome in caso di parità
+		groupStandings[groupName].sort((a, b) => {
+			if (b.points !== a.points) {
+				return b.points - a.points;
+			}
+			return a.team.teamName.localeCompare(b.team.teamName);
+		});
+
+		console.log(`Classifica finale ${groupName}:`, groupStandings[groupName].map(s => `${s.team.teamName}: ${s.points}pts (${s.played}P ${s.won}V ${s.drawn}N ${s.lost}S)`));
 	}
 
 	function setGroupResult(matchId: string, score1: number, score2: number) {
@@ -206,7 +223,7 @@
 		const match = groupMatches.find(m => m.id === matchId);
 		if (!match || !match.group) return;
 
-		// Reset del risultato
+		// Reset del risultato.
 		match.score1 = undefined;
 		match.score2 = undefined;
 		match.w = null;
