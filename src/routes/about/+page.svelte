@@ -736,8 +736,170 @@
 											<h6 class="text-success">📊 Classifica {groupName.split('_').slice(1).join(' ')}</h6>
 											<div class="table-responsive">
 												<table class="table table-sm table-striped">
-													<thead class="table-dark">
+												<thead class="table-dark">
 														<tr>
 															<th>Pos</th>
 															<th>Squadra</th>
-															<th>P
+															<th>P</th>
+															<th>V</th>
+															<th>N</th>
+															<th>S</th>
+															<th>Pti</th>
+														</tr>
+													</thead>
+													<tbody>
+														{#each groupStandings[groupName] || [] as standing, i}
+															<tr class={i < 2 ? 'table-success' : ''}>
+																<td><strong>{i + 1}</strong></td>
+																<td>{standing.team.teamName}</td>
+																<td>{standing.played}</td>
+																<td>{standing.won}</td>
+																<td>{standing.drawn}</td>
+																<td>{standing.lost}</td>
+																<td><strong>{standing.points}</strong></td>
+															</tr>
+														{/each}
+													</tbody>
+												</table>
+											</div>
+											{#if groupStandings[groupName] && groupStandings[groupName].length > 0}
+												<small class="text-muted">
+													Le prime 2 squadre si qualificano per la fase eliminatoria
+												</small>
+											{/if}
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/each}
+			
+			{#if allGroupMatchesPlayed}
+				<div class="text-center mt-5">
+					<button class="btn btn-success btn-lg" on:click={startKnockoutPhase}>
+						🏆 Inizia Fase Eliminatoria
+					</button>
+				</div>
+			{:else}
+				<div class="alert alert-warning text-center">
+					<strong>⚠️ Non tutte le partite dei gironi sono state completate</strong>
+				</div>
+			{/if}
+		</div>
+
+	{:else if currentPhase === 'knockout'}
+		<div class="mb-4">
+			<h2>🏆 Fase Eliminatoria</h2>
+			
+			{#each categories as category}
+				<div class="mb-5">
+					<h3 class="text-primary">{getCategoryConfig(category).name}</h3>
+					
+					{#each knockoutRoundsByCategory[category] || [] as round}
+						<div class="card mb-3">
+							<div class="card-header">
+								<h5>
+									{#if round === Math.max(...knockoutRoundsByCategory[category])}
+										🏆 FINALE
+									{:else if round === Math.max(...knockoutRoundsByCategory[category]) - 1}
+										🥉 SEMIFINALE
+									{:else}
+										Round {round}
+									{/if}
+								</h5>
+							</div>
+							<div class="card-body">
+								{#each knockoutMatches.filter(m => m.round === round && m.category === category) as match}
+									<div class="card mb-2">
+										<div class="card-body p-3">
+											<div class="row align-items-center">
+												<div class="col-4 text-end">
+													{match.t1?.teamName || 'TBD'}
+												</div>
+												<div class="col-4 text-center">
+													{#if match.w}
+														<span class="badge bg-success">
+															Vincitore: {match.w.teamName}
+														</span>
+													{:else if match.t1 && match.t2}
+														<div class="btn-group">
+															<button class="btn btn-outline-primary btn-sm"
+																on:click={() => setKnockoutWinner(match.id, match.t1)}>
+																{match.t1.teamName}
+															</button>
+															<button class="btn btn-outline-primary btn-sm"
+																on:click={() => setKnockoutWinner(match.id, match.t2)}>
+																{match.t2.teamName}
+															</button>
+														</div>
+													{:else}
+														<span class="text-muted">In attesa...</span>
+													{/if}
+												</div>
+												<div class="col-4">
+													{match.t2?.teamName || 'TBD'}
+												</div>
+											</div>
+										</div>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/each}
+		</div>
+
+	{:else if currentPhase === 'finished'}
+		<div class="text-center">
+			<h2 class="text-success">🎉 TORNEO CONCLUSO! 🎉</h2>
+			
+			{#each categories as category}
+				<div class="card mb-4">
+					<div class="card-header bg-warning">
+						<h3>{getCategoryConfig(category).name}</h3>
+					</div>
+					<div class="card-body">
+						<h1 class="display-4 text-success">
+							🏆 {winner[category]?.teamName || 'N/A'}
+						</h1>
+						<p class="lead">CAMPIONI {getCategoryConfig(category).name.toUpperCase()}!</p>
+					</div>
+				</div>
+			{/each}
+		</div>
+	{/if}
+
+	<div class="text-center mt-5">
+		<button class="btn btn-outline-secondary" on:click={reset}>🔄 Reset Torneo</button>
+	</div>
+</div>
+
+<style>
+	.table th, .table td {
+		vertical-align: middle;
+	}
+	
+	.card {
+		border: 1px solid #dee2e6;
+		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+	}
+	
+	.btn-group .btn {
+		margin: 0 2px;
+	}
+	
+	.badge {
+		font-size: 0.9em;
+	}
+	
+	.alert {
+		border-radius: 8px;
+	}
+	
+	.table-success {
+		background-color: #d1edff !important;
+	}
+</style>
