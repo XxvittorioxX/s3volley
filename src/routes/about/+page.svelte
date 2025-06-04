@@ -223,7 +223,7 @@
 		const match = groupMatches.find(m => m.id === matchId);
 		if (!match || !match.group) return;
 
-		// Reset del risultato.
+		// Reset del risultato
 		match.score1 = undefined;
 		match.score2 = undefined;
 		match.w = null;
