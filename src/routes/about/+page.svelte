@@ -544,7 +544,7 @@
 															<th>V</th>
 															<th>N</th>
 															<th>S</th>
-															<th>Punti</th>
+															<th>Punti Totali</th>
 														</tr>
 													</thead>
 													<tbody>
@@ -557,7 +557,6 @@
 																<td>{standing.drawn}</td>
 																<td>{standing.lost}</td>
 																<td>{standing.points}</td>
-																<td class="text-secondary">{standing.goalsAgainst}</td>
 															</tr>
 														{/each}
 													</tbody>
