@@ -45,8 +45,8 @@
 	});
 
 	function createGroups() {
-		if (teams.length < 4) {
-			alert('Servono almeno 4 squadre per i gironi!');
+		if (teams.length < 2) {
+			alert('Servono almeno 2 squadre per i gironi!');
 			return;
 		}
 
