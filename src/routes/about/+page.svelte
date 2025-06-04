@@ -699,3 +699,124 @@
 												<div class="mt-3 text-center">
 													<span class="badge bg-success fs-6">🎉 Vince: {match.w.teamName}</span>
 												</div>
+											{/if}
+										</div>
+									</div>
+								{/each}
+							</div>
+						{/each}
+					</div>
+
+					{#if winner[category]}
+						<div class="alert alert-success text-center mt-4">
+							<h4>🏆 VINCITORE CATEGORIA {category.toUpperCase()}: {winner[category]?.teamName}</h4>
+						</div>
+					{/if}
+				</div>
+			{/each}
+		</div>
+
+	{:else if currentPhase === 'finished'}
+		<div class="text-center">
+			<h2 class="text-success mb-4">🏆 TORNEO COMPLETATO! 🏆</h2>
+			
+			<div class="row justify-content-center">
+				<div class="col-md-8">
+					<div class="card">
+						<div class="card-header bg-success text-white">
+							<h3 class="mb-0">VINCITORI PER CATEGORIA</h3>
+						</div>
+						<div class="card-body">
+							{#each categories as category}
+								{#if winner[category]}
+									<div class="alert alert-light border-success mb-3">
+										<div class="row align-items-center">
+											<div class="col-4">
+												<h5 class="text-primary mb-0">Categoria {category}</h5>
+											</div>
+											<div class="col-8">
+												<h4 class="text-success mb-0">
+													🏆 {winner[category]?.teamName}
+												</h4>
+												<small class="text-muted">
+													Allenatore: {winner[category]?.coachName}
+												</small>
+											</div>
+										</div>
+									</div>
+								{/if}
+							{/each}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="mt-4">
+				<button class="btn btn-outline-primary btn-lg me-3" on:click={reset}>
+					🔄 Nuovo Torneo
+				</button>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Footer con pulsante reset sempre visibile (tranne in setup) -->
+	{#if currentPhase !== 'setup'}
+		<div class="text-center mt-5 pt-4 border-top">
+			<button class="btn btn-outline-danger" on:click={reset}>
+				🔄 Reset Completo Torneo
+			</button>
+		</div>
+	{/if}
+</div>
+
+<style>
+	.card {
+		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+		border: 1px solid #e9ecef;
+	}
+	
+	.card-header {
+		background-color: #f8f9fa;
+		border-bottom: 1px solid #dee2e6;
+		font-weight: 600;
+	}
+	
+	.badge {
+		font-size: 0.9em;
+	}
+	
+	.table-success {
+		background-color: #d1edff !important;
+	}
+	
+	.btn-sm {
+		font-size: 0.8rem;
+		padding: 0.25rem 0.5rem;
+	}
+	
+	.overflow-auto {
+		max-height: 80vh;
+	}
+	
+	.text-primary {
+		color: #0d6efd !important;
+	}
+	
+	.text-success {
+		color: #198754 !important;
+	}
+	
+	.bg-success {
+		background-color: #198754 !important;
+	}
+	
+	.border-success {
+		border-color: #198754 !important;
+	}
+	
+	.alert-success {
+		background-color: #d1edff;
+		border-color: #0d6efd;
+		color: #0a58ca;
+	}
+</style>
