@@ -116,7 +116,7 @@
 					}
 				}
 
-				// Inizializza classifica girone - SEMPLIFICATA
+				// Inizializza classifica girone
 				groupStandings[groupName] = groupTeams.map(team => ({
 					team,
 					played: 0,
@@ -131,82 +131,92 @@
 		currentPhase = 'group';
 	}
 
+	// Funzione per ricalcolare completamente la classifica di un girone
+	function recalculateGroupStanding(groupName: string) {
+		const groupTeams = groups[groupName];
+		if (!groupTeams) return;
+
+		// Reset completo delle statistiche
+		groupStandings[groupName] = groupTeams.map(team => ({
+			team,
+			played: 0,
+			won: 0,
+			drawn: 0,
+			lost: 0,
+			points: 0
+		}));
+
+		// Ricalcola da tutte le partite giocate
+		const groupMatchesPlayed = groupMatches.filter(m => 
+			m.group === groupName && 
+			m.score1 !== undefined && 
+			m.score2 !== undefined
+		);
+
+		groupMatchesPlayed.forEach(match => {
+			const standing1 = groupStandings[groupName].find(s => s.team.teamName === match.t1!.teamName);
+			const standing2 = groupStandings[groupName].find(s => s.team.teamName === match.t2!.teamName);
+
+			if (standing1 && standing2) {
+				standing1.played++;
+				standing2.played++;
+
+				if (match.score1! > match.score2!) {
+					// Squadra 1 vince
+					standing1.won++;
+					standing1.points += 3;
+					standing2.lost++;
+				} else if (match.score2! > match.score1!) {
+					// Squadra 2 vince
+					standing2.won++;
+					standing2.points += 3;
+					standing1.lost++;
+				} else {
+					// Pareggio
+					standing1.drawn++;
+					standing2.drawn++;
+					standing1.points += 1;
+					standing2.points += 1;
+				}
+			}
+		});
+
+		// Ordina per punti (decrescente)
+		groupStandings[groupName].sort((a, b) => b.points - a.points);
+	}
+
 	function setGroupResult(matchId: string, score1: number, score2: number) {
 		const match = groupMatches.find(m => m.id === matchId);
 		if (!match || !match.t1 || !match.t2 || !match.group) return;
 
-		const groupName = match.group;
-		const standing1 = groupStandings[groupName].find(s => s.team.teamName === match.t1!.teamName);
-		const standing2 = groupStandings[groupName].find(s => s.team.teamName === match.t2!.teamName);
-
-		if (!standing1 || !standing2) return;
-
-		// Se il risultato era già stato inserito, rimuovi i vecchi valori
-		if (match.score1 !== undefined && match.score2 !== undefined) {
-			// Rimuovi vecchi risultati - SOLO quello che serve
-			standing1.played--;
-			standing2.played--;
-
-			if (match.score1 > match.score2) {
-				standing1.won--;
-				standing1.points -= 3;
-				standing2.lost--;
-			} else if (match.score2 > match.score1) {
-				standing2.won--;
-				standing2.points -= 3;
-				standing1.lost--;
-			} else {
-				standing1.drawn--;
-				standing2.drawn--;
-				standing1.points -= 1;
-				standing2.points -= 1;
-			}
-		}
-
-		// Imposta i nuovi risultati
+		// Aggiorna il risultato della partita
 		match.score1 = score1;
 		match.score2 = score2;
 		match.w = score1 > score2 ? match.t1 : score1 < score2 ? match.t2 : null;
 
-		// Aggiungi i nuovi risultati
-		standing1.played++;
-		standing2.played++;
-
-		// Assegna i punti
-		if (score1 > score2) {
-			// Squadra 1 vince
-			standing1.won++;
-			standing1.points += 3;
-			standing2.lost++;
-		} else if (score2 > score1) {
-			// Squadra 2 vince
-			standing2.won++;
-			standing2.points += 3;
-			standing1.lost++;
-		} else {
-			// Pareggio
-			standing1.drawn++;
-			standing2.drawn++;
-			standing1.points += 1;
-			standing2.points += 1;
-		}
-
-		// Riordina la classifica di questo girone - SOLO per punti
-		groupStandings[groupName].sort((a, b) => b.points - a.points);
+		// Ricalcola completamente la classifica del girone
+		recalculateGroupStanding(match.group);
 
 		// Forza l'aggiornamento reattivo
-		groupStandings = { 
-			...groupStandings,
-			[groupName]: [...groupStandings[groupName]]
-		};
+		groupStandings = { ...groupStandings };
 		groupMatches = [...groupMatches];
 	}
 
-	function updateMatchResult(matchId: string) {
+	function resetMatchResult(matchId: string) {
 		const match = groupMatches.find(m => m.id === matchId);
-		if (match && match.score1 !== undefined && match.score2 !== undefined && match.score1 >= 0 && match.score2 >= 0) {
-			setGroupResult(matchId, match.score1, match.score2);
-		}
+		if (!match || !match.group) return;
+
+		// Reset del risultato
+		match.score1 = undefined;
+		match.score2 = undefined;
+		match.w = null;
+
+		// Ricalcola completamente la classifica del girone
+		recalculateGroupStanding(match.group);
+
+		// Forza l'aggiornamento reattivo
+		groupStandings = { ...groupStandings };
+		groupMatches = [...groupMatches];
 	}
 
 	function startKnockoutPhase() {
@@ -437,56 +447,7 @@
 															{#if match.score1 !== undefined && match.score2 !== undefined}
 																<span class="badge bg-primary fs-6">{match.score1} - {match.score2}</span>
 																<button class="btn btn-sm btn-outline-secondary ms-2"
-																	on:click={() => {
-																		// Reset del match
-																		const oldScore1 = match.score1;
-																		const oldScore2 = match.score2;
-																		match.score1 = undefined; 
-																		match.score2 = undefined;
-																		
-																		// Rimuovi i vecchi risultati dalle classifiche
-																		if (oldScore1 !== undefined && oldScore2 !== undefined) {
-																			const groupName = match.group!;
-																			const standing1 = groupStandings[groupName].find(s => s.team.teamName === match.t1!.teamName);
-																			const standing2 = groupStandings[groupName].find(s => s.team.teamName === match.t2!.teamName);
-																			
-																			if (standing1 && standing2) {
-																				// Rimuovi i vecchi valori - SOLO quello che serve per la classifica
-																				standing1.played--;
-																				standing2.played--;
-																				
-																				if (oldScore1 > oldScore2) {
-																					// Squadra 1 aveva vinto, squadra 2 aveva perso
-																					standing1.won--;
-																					standing1.points -= 3;
-																					standing2.lost--;
-																				} else if (oldScore2 > oldScore1) {
-																					// Squadra 2 aveva vinto, squadra 1 aveva perso
-																					standing2.won--;
-																					standing2.points -= 3;
-																					standing1.lost--;
-																				} else {
-																					// Era un pareggio
-																					standing1.drawn--;
-																					standing2.drawn--;
-																					standing1.points -= 1;
-																					standing2.points -= 1;
-																				}
-																				
-																				// Riordina classifica SOLO per punti
-																				groupStandings[groupName].sort((a, b) => b.points - a.points);
-																				
-																				// FORZA L'AGGIORNAMENTO DELLA REATTIVITÀ
-																				groupStandings = {
-																					...groupStandings,
-																					[groupName]: [...groupStandings[groupName]]
-																				};
-																			}
-																		}
-																		
-																		// Forza aggiornamento completo
-																		groupMatches = [...groupMatches];
-																	}}>
+																	on:click={() => resetMatchResult(match.id)}>
 																	Modifica
 																</button>
 															{:else}
@@ -523,7 +484,7 @@
 															<th>V</th>
 															<th>N</th>
 															<th>S</th>
-															<th>Punti Totali</th>
+															<th>Punti</th>
 														</tr>
 													</thead>
 													<tbody>
@@ -535,7 +496,7 @@
 																<td>{standing.won}</td>
 																<td>{standing.drawn}</td>
 																<td>{standing.lost}</td>
-																<td>{standing.points}</td>
+																<td><strong>{standing.points}</strong></td>
 															</tr>
 														{/each}
 													</tbody>
