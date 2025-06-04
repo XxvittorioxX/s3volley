@@ -23,9 +23,6 @@
 		drawn: number;
 		lost: number;
 		points: number;
-		goalsFor: number;
-		goalsAgainst: number;
-		goalDifference: number;
 	}
 
 	let teams: Team[] = [];
@@ -119,17 +116,14 @@
 					}
 				}
 
-				// Inizializza classifica girone
+				// Inizializza classifica girone - SEMPLIFICATA
 				groupStandings[groupName] = groupTeams.map(team => ({
 					team,
 					played: 0,
 					won: 0,
 					drawn: 0,
 					lost: 0,
-					points: 0,
-					goalsFor: 0,
-					goalsAgainst: 0,
-					goalDifference: 0
+					points: 0
 				}));
 			}
 		});
@@ -149,13 +143,9 @@
 
 		// Se il risultato era già stato inserito, rimuovi i vecchi valori
 		if (match.score1 !== undefined && match.score2 !== undefined) {
-			// Rimuovi vecchi risultati
+			// Rimuovi vecchi risultati - SOLO quello che serve
 			standing1.played--;
 			standing2.played--;
-			standing1.goalsFor -= match.score1;
-			standing1.goalsAgainst -= match.score2;
-			standing2.goalsFor -= match.score2;
-			standing2.goalsAgainst -= match.score1;
 
 			if (match.score1 > match.score2) {
 				standing1.won--;
@@ -181,14 +171,6 @@
 		// Aggiungi i nuovi risultati
 		standing1.played++;
 		standing2.played++;
-		standing1.goalsFor += score1;
-		standing1.goalsAgainst += score2;
-		standing2.goalsFor += score2;
-		standing2.goalsAgainst += score1;
-
-		// Calcola la differenza reti
-		standing1.goalDifference = standing1.goalsFor - standing1.goalsAgainst;
-		standing2.goalDifference = standing2.goalsFor - standing2.goalsAgainst;
 
 		// Assegna i punti
 		if (score1 > score2) {
@@ -209,15 +191,14 @@
 			standing2.points += 1;
 		}
 
-		// Riordina la classifica di questo girone
-		groupStandings[groupName].sort((a, b) => {
-			if (a.points !== b.points) return b.points - a.points;
-			if (a.goalDifference !== b.goalDifference) return b.goalDifference - a.goalDifference;
-			return b.goalsFor - a.goalsFor;
-		});
+		// Riordina la classifica di questo girone - SOLO per punti
+		groupStandings[groupName].sort((a, b) => b.points - a.points);
 
 		// Forza l'aggiornamento reattivo
-		groupStandings = { ...groupStandings };
+		groupStandings = { 
+			...groupStandings,
+			[groupName]: [...groupStandings[groupName]]
+		};
 		groupMatches = [...groupMatches];
 	}
 
@@ -470,42 +451,40 @@
 																			const standing2 = groupStandings[groupName].find(s => s.team.teamName === match.t2!.teamName);
 																			
 																			if (standing1 && standing2) {
-																				// Rimuovi i vecchi valori
+																				// Rimuovi i vecchi valori - SOLO quello che serve per la classifica
 																				standing1.played--;
 																				standing2.played--;
-																				standing1.goalsFor -= oldScore1;
-																				standing1.goalsAgainst -= oldScore2;
-																				standing2.goalsFor -= oldScore2;
-																				standing2.goalsAgainst -= oldScore1;
-																				standing1.goalDifference = standing1.goalsFor - standing1.goalsAgainst;
-																				standing2.goalDifference = standing2.goalsFor - standing2.goalsAgainst;
 																				
 																				if (oldScore1 > oldScore2) {
+																					// Squadra 1 aveva vinto, squadra 2 aveva perso
 																					standing1.won--;
 																					standing1.points -= 3;
 																					standing2.lost--;
 																				} else if (oldScore2 > oldScore1) {
+																					// Squadra 2 aveva vinto, squadra 1 aveva perso
 																					standing2.won--;
 																					standing2.points -= 3;
 																					standing1.lost--;
 																				} else {
+																					// Era un pareggio
 																					standing1.drawn--;
 																					standing2.drawn--;
 																					standing1.points -= 1;
 																					standing2.points -= 1;
 																				}
 																				
-																				// Riordina classifica
-																				groupStandings[groupName].sort((a, b) => {
-																					if (a.points !== b.points) return b.points - a.points;
-																					if (a.goalDifference !== b.goalDifference) return b.goalDifference - a.goalDifference;
-																					return b.goalsFor - a.goalsFor;
-																				});
+																				// Riordina classifica SOLO per punti
+																				groupStandings[groupName].sort((a, b) => b.points - a.points);
+																				
+																				// FORZA L'AGGIORNAMENTO DELLA REATTIVITÀ
+																				groupStandings = {
+																					...groupStandings,
+																					[groupName]: [...groupStandings[groupName]]
+																				};
 																			}
 																		}
 																		
-																		// Forza aggiornamento
-																		groupStandings = { ...groupStandings };
+																		// Forza aggiornamento completo
 																		groupMatches = [...groupMatches];
 																	}}>
 																	Modifica
@@ -530,7 +509,7 @@
 												</div>
 											</div>
 										{/each}
-
+										
 										<!-- Classifica del girone -->
 										<div class="mt-4">
 											<h6 class="text-success">Classifica {groupName.split('_').slice(1).join(' ')}</h6>
@@ -549,7 +528,7 @@
 													</thead>
 													<tbody>
 														{#each groupStandings[groupName] || [] as standing, index}
-															<tr>
+															<tr class="{index < 2 ? 'table-success' : ''}">
 																<td>{index + 1}</td>
 																<td>{standing.team.teamName}</td>
 																<td>{standing.played}</td>
