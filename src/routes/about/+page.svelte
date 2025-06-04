@@ -35,6 +35,9 @@
 	let qualifiedTeams: { [category: string]: Team[] } = {};
 	let categories: string[] = [];
 	let groupsByCategory: { [category: string]: string[] } = {};
+	
+	// Variabili temporanee per i punteggi
+	let tempScores: { [key: string]: { score1?: number, score2?: number } } = {};
 
 	onMount(() => {
 		teams = get(registeredTeams);
@@ -68,6 +71,7 @@
 		groupMatches = [];
 		groupStandings = {};
 		groupsByCategory = {};
+		tempScores = {};
 
 		// Crea MULTIPLI gironi per ogni categoria
 		Object.entries(teamsByCategory).forEach(([category, categoryTeams]) => {
@@ -116,7 +120,7 @@
 					}
 				}
 
-				// Inizializza classifica girone
+				// Inizializza SUBITO la classifica del girone
 				groupStandings[groupName] = groupTeams.map(team => ({
 					team,
 					played: 0,
@@ -128,13 +132,20 @@
 			}
 		});
 
+		// Forza l'aggiornamento reattivo
+		groupStandings = { ...groupStandings };
 		currentPhase = 'group';
 	}
 
 	// Funzione per ricalcolare completamente la classifica di un girone
 	function recalculateGroupStanding(groupName: string) {
 		const groupTeams = groups[groupName];
-		if (!groupTeams) return;
+		if (!groupTeams) {
+			console.error(`Group ${groupName} not found`);
+			return;
+		}
+
+		console.log(`Recalculating standings for ${groupName}`);
 
 		// Reset completo delle statistiche - mantieni i riferimenti alle squadre originali
 		groupStandings[groupName] = groupTeams.map(team => ({
@@ -150,10 +161,12 @@
 		const groupMatchesPlayed = groupMatches.filter(m => 
 			m.group === groupName && 
 			m.score1 !== undefined && 
-			m.score2 !== undefined
+			m.score2 !== undefined &&
+			m.score1 !== null &&
+			m.score2 !== null
 		);
 
-		console.log(`Ricalcolando ${groupName}: ${groupMatchesPlayed.length} partite giocate`);
+		console.log(`Found ${groupMatchesPlayed.length} played matches for ${groupName}`);
 
 		groupMatchesPlayed.forEach(match => {
 			// Usa il riferimento diretto alla squadra invece del nome
@@ -161,7 +174,7 @@
 			const standing2 = groupStandings[groupName].find(s => s.team === match.t2);
 
 			if (standing1 && standing2) {
-				console.log(`Match: ${match.t1?.teamName} ${match.score1} - ${match.score2} ${match.t2?.teamName}`);
+				console.log(`Processing match: ${match.t1?.teamName} ${match.score1} - ${match.score2} ${match.t2?.teamName}`);
 				
 				standing1.played++;
 				standing2.played++;
@@ -171,23 +184,20 @@
 					standing1.won++;
 					standing1.points += 3;
 					standing2.lost++;
-					console.log(`${match.t1?.teamName} vince`);
 				} else if (match.score2! > match.score1!) {
 					// Squadra 2 vince
 					standing2.won++;
 					standing2.points += 3;
 					standing1.lost++;
-					console.log(`${match.t2?.teamName} vince`);
 				} else {
 					// Pareggio
 					standing1.drawn++;
 					standing2.drawn++;
 					standing1.points += 1;
 					standing2.points += 1;
-					console.log(`Pareggio`);
 				}
 			} else {
-				console.error(`Squadre non trovate per match:`, match.t1?.teamName, match.t2?.teamName);
+				console.error(`Teams not found for match:`, match.t1?.teamName, match.t2?.teamName);
 			}
 		});
 
@@ -199,12 +209,18 @@
 			return a.team.teamName.localeCompare(b.team.teamName);
 		});
 
-		console.log(`Classifica finale ${groupName}:`, groupStandings[groupName].map(s => `${s.team.teamName}: ${s.points}pts (${s.played}P ${s.won}V ${s.drawn}N ${s.lost}S)`));
+		console.log(`Final standings for ${groupName}:`, 
+			groupStandings[groupName].map(s => 
+				`${s.team.teamName}: ${s.points}pts (${s.played}P ${s.won}W ${s.drawn}D ${s.lost}L)`
+			)
+		);
 	}
 
 	function setGroupResult(matchId: string, score1: number, score2: number) {
 		const match = groupMatches.find(m => m.id === matchId);
 		if (!match || !match.t1 || !match.t2 || !match.group) return;
+
+		console.log(`Setting result for ${matchId}: ${score1}-${score2}`);
 
 		// Aggiorna il risultato della partita
 		match.score1 = score1;
@@ -214,26 +230,35 @@
 		// Ricalcola completamente la classifica del girone
 		recalculateGroupStanding(match.group);
 
-		// Forza l'aggiornamento reattivo
+		// Forza l'aggiornamento reattivo DOPO il ricalcolo
 		groupStandings = { ...groupStandings };
 		groupMatches = [...groupMatches];
+		
+		console.log(`Result set and standings updated for ${match.group}`);
 	}
 
 	function resetMatchResult(matchId: string) {
 		const match = groupMatches.find(m => m.id === matchId);
 		if (!match || !match.group) return;
 
+		console.log(`Resetting result for ${matchId}`);
+
 		// Reset del risultato
 		match.score1 = undefined;
 		match.score2 = undefined;
 		match.w = null;
 
+		// Inizializza i valori temporanei per permettere la rieditazione
+		tempScores[matchId] = { score1: undefined, score2: undefined };
+
 		// Ricalcola completamente la classifica del girone
 		recalculateGroupStanding(match.group);
 
-		// Forza l'aggiornamento reattivo
+		// Forza l'aggiornamento reattivo DOPO il ricalcolo
 		groupStandings = { ...groupStandings };
 		groupMatches = [...groupMatches];
+		
+		console.log(`Result reset and standings updated for ${match.group}`);
 	}
 
 	function startKnockoutPhase() {
@@ -385,6 +410,7 @@
 		groupStandings = {};
 		groups = {};
 		groupsByCategory = {};
+		tempScores = {};
 		currentPhase = 'setup';
 		winner = {};
 		qualifiedTeams = {};
@@ -470,14 +496,25 @@
 															{:else}
 																<div class="d-flex justify-content-center align-items-center gap-2">
 																	<input type="number" class="form-control form-control-sm text-center" 
-																		bind:value={match.score1} min="0" max="99" style="width: 60px;" placeholder="0">
+																		bind:value={tempScores[match.id]?.score1} min="0" max="99" style="width: 60px;" placeholder="0"
+																		on:input={() => {
+																			if (!tempScores[match.id]) tempScores[match.id] = {};
+																		}}>
 																	<span>-</span>
 																	<input type="number" class="form-control form-control-sm text-center" 
-																		bind:value={match.score2} min="0" max="99" style="width: 60px;" placeholder="0">
+																		bind:value={tempScores[match.id]?.score2} min="0" max="99" style="width: 60px;" placeholder="0"
+																		on:input={() => {
+																			if (!tempScores[match.id]) tempScores[match.id] = {};
+																		}}>
 																</div>
 																<button class="btn btn-sm btn-success mt-2"
-																	disabled={match.score1 === undefined || match.score2 === undefined || match.score1 < 0 || match.score2 < 0}
-																	on:click={() => setGroupResult(match.id, Number(match.score1) || 0, Number(match.score2) || 0)}>
+																	disabled={!tempScores[match.id] || tempScores[match.id].score1 === undefined || tempScores[match.id].score2 === undefined}
+																	on:click={() => {
+																		if (tempScores[match.id]) {
+																			setGroupResult(match.id, Number(tempScores[match.id].score1) || 0, Number(tempScores[match.id].score2) || 0);
+																			delete tempScores[match.id]; // Pulisci dopo l'inserimento
+																		}
+																	}}>
 																	Conferma Risultato
 																</button>
 															{/if}
