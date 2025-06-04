@@ -25,6 +25,22 @@
 		points: number;
 	}
 
+	// Configurazione regole per categoria
+	interface CategoryRules {
+		maxScore: number;
+		minAdvantage: number;
+		description: string;
+	}
+
+	const categoryRules: { [key: string]: CategoryRules } = {
+		'S1': { maxScore: 15, minAdvantage: 1, description: 'Set a 15 punti' },
+		'S2': { maxScore: 15, minAdvantage: 1, description: 'Set a 15 punti' },
+		'S3': { maxScore: 15, minAdvantage: 2, description: 'Set a 15 punti (vantaggio 2)' },
+		'Propaganda': { maxScore: 25, minAdvantage: 2, description: 'Set a 25 punti (vantaggio 2)' },
+		'Under12': { maxScore: 15, minAdvantage: 2, description: 'Set a 15 punti (vantaggio 2)' },
+		'Under14': { maxScore: 25, minAdvantage: 2, description: 'Set a 25 punti (vantaggio 2)' }
+	};
+
 	let teams: Team[] = [];
 	let groupMatches: Match[] = [];
 	let knockoutMatches: Match[] = [];
@@ -49,6 +65,39 @@
 		if (!tempScores[matchId]) {
 			tempScores[matchId] = { score1: 0, score2: 0 };
 		}
+	}
+
+	// Funzione per ottenere le regole di una categoria
+	function getCategoryRules(category: string): CategoryRules {
+		return categoryRules[category] || { maxScore: 25, minAdvantage: 2, description: 'Set a 25 punti (vantaggio 2)' };
+	}
+
+	// Funzione per validare il punteggio in base alle regole della categoria
+	function isValidScore(score1: number, score2: number, category: string): boolean {
+		const rules = getCategoryRules(category);
+		const maxScore = Math.max(score1, score2);
+		const minScore = Math.min(score1, score2);
+		const scoreDiff = Math.abs(score1 - score2);
+
+		// Il punteggio massimo deve essere almeno pari al limite della categoria
+		if (maxScore < rules.maxScore) {
+			// Se nessuno ha raggiunto il punteggio minimo, il match non è finito
+			return false;
+		}
+
+		// Se qualcuno ha raggiunto esattamente il punteggio limite
+		if (maxScore === rules.maxScore) {
+			// Deve avere il vantaggio minimo richiesto
+			return scoreDiff >= rules.minAdvantage;
+		}
+
+		// Se il punteggio supera il limite (overtime)
+		if (maxScore > rules.maxScore) {
+			// Deve avere esattamente il vantaggio minimo richiesto
+			return scoreDiff === rules.minAdvantage;
+		}
+
+		return false;
 	}
 
 	function createGroups() {
@@ -228,7 +277,14 @@
 
 	function setGroupResult(matchId: string, score1: number, score2: number) {
 		const match = groupMatches.find(m => m.id === matchId);
-		if (!match || !match.t1 || !match.t2 || !match.group) return;
+		if (!match || !match.t1 || !match.t2 || !match.group || !match.category) return;
+
+		// Valida il punteggio in base alle regole della categoria
+		if (!isValidScore(score1, score2, match.category)) {
+			const rules = getCategoryRules(match.category);
+			alert(`Punteggio non valido per la categoria ${match.category}!\n${rules.description}\nIl punteggio deve raggiungere almeno ${rules.maxScore} punti con un vantaggio minimo di ${rules.minAdvantage} punti.`);
+			return;
+		}
 
 		console.log(`Setting result for ${matchId}: ${score1}-${score2}`);
 
@@ -450,8 +506,11 @@
 			{:else}
 				{#each categories as category}
 					<div class="card mb-3">
-						<div class="card-header">
-							<h4>{category} ({teams.filter(t => t.category === category).length} squadre)</h4>
+						<div class="card-header d-flex justify-content-between align-items-center">
+							<h4 class="mb-0">{category} ({teams.filter(t => t.category === category).length} squadre)</h4>
+							<small class="text-muted">
+								{getCategoryRules(category).description}
+							</small>
 						</div>
 						<div class="card-body">
 							<div class="list-group">
@@ -477,7 +536,12 @@
 			
 			{#each categories as category}
 				<div class="mb-5">
-					<h3 class="text-primary mb-4">Categoria {category}</h3>
+					<div class="d-flex justify-content-between align-items-center mb-4">
+						<h3 class="text-primary mb-0">Categoria {category}</h3>
+						<div class="badge bg-info fs-6">
+							{getCategoryRules(category).description}
+						</div>
+					</div>
 					
 					{#each groupsByCategory[category] || [] as groupName}
 						<div class="row justify-content-center mb-4">
@@ -518,6 +582,11 @@
 																	}}>
 																	Conferma Risultato
 																</button>
+																<div class="mt-1">
+																	<small class="text-muted">
+																		{getCategoryRules(match.category || '').description}
+																	</small>
+																</div>
 															{/if}
 														</div>
 														<div class="col-3 fw-semibold">{match.t2?.teamName}</div>
@@ -584,7 +653,12 @@
 
 			{#each categories as category}
 				<div class="mb-5">
-					<h3 class="text-primary mb-3">Categoria {category}</h3>
+					<div class="d-flex justify-content-between align-items-center mb-3">
+						<h3 class="text-primary mb-0">Categoria {category}</h3>
+						<div class="badge bg-info fs-6">
+							{getCategoryRules(category).description}
+						</div>
+					</div>
 					<p class="text-muted mb-4">Squadre qualificate: {qualifiedTeams[category]?.map(t => t.teamName).join(', ') || 'Nessuna'}</p>
 
 					<div class="d-flex flex-wrap gap-4 justify-content-center overflow-auto">
@@ -625,40 +699,3 @@
 												<div class="mt-3 text-center">
 													<span class="badge bg-success fs-6">🎉 Vince: {match.w.teamName}</span>
 												</div>
-											{/if}
-										</div>
-									</div>
-								{/each}
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/each}
-		</div>
-
-	{:else if currentPhase === 'finished'}
-		<div class="mb-4">
-			<h2 class="text-center mb-4">🏆 VINCITORI DEL TORNEO 🏆</h2>
-			<div class="row justify-content-center">
-				{#each categories as category}
-					{#if winner[category]}
-						<div class="col-md-4 mb-3">
-							<div class="card text-center border-warning">
-								<div class="card-body bg-warning bg-opacity-10">
-									<h3 class="card-title text-warning">🏆</h3>
-									<h4 class="card-title">{category}</h4>
-									<h5 class="card-text text-primary">{winner[category]?.teamName}</h5>
-									<small class="text-muted">Allenatore: {winner[category]?.coachName}</small>
-								</div>
-							</div>
-						</div>
-					{/if}
-				{/each}
-			</div>
-		</div>
-	{/if}
-
-	<div class="text-center mt-5">
-		<button class="btn btn-danger" on:click={reset}>🔄 Reset Torneo</button>
-	</div>
-</div>
