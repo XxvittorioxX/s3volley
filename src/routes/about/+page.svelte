@@ -37,12 +37,19 @@
 	let groupsByCategory: { [category: string]: string[] } = {};
 	
 	// Variabili temporanee per i punteggi
-	let tempScores: { [key: string]: { score1?: number, score2?: number } } = {};
+	let tempScores: { [key: string]: { score1: number, score2: number } } = {};
 
 	onMount(() => {
 		teams = get(registeredTeams);
 		categories = [...new Set(teams.map(t => t.category))];
 	});
+
+	// Funzione helper per inizializzare i punteggi temporanei
+	function initTempScore(matchId: string) {
+		if (!tempScores[matchId]) {
+			tempScores[matchId] = { score1: 0, score2: 0 };
+		}
+	}
 
 	function createGroups() {
 		if (teams.length < 3) {
@@ -106,8 +113,9 @@
 				// Crea partite del girone (tutti contro tutti)
 				for (let i = 0; i < groupTeams.length; i++) {
 					for (let j = i + 1; j < groupTeams.length; j++) {
+						const matchId = `${groupName}-${i}-${j}`;
 						groupMatches.push({
-							id: `${groupName}-${i}-${j}`,
+							id: matchId,
 							t1: groupTeams[i],
 							t2: groupTeams[j],
 							w: null,
@@ -117,6 +125,8 @@
 							phase: 'group',
 							category: category
 						});
+						// Inizializza i punteggi temporanei
+						initTempScore(matchId);
 					}
 				}
 
@@ -248,8 +258,8 @@
 		match.score2 = undefined;
 		match.w = null;
 
-		// Inizializza i valori temporanei per permettere la rieditazione
-		tempScores[matchId] = { score1: undefined, score2: undefined };
+		// Reinizializza i valori temporanei
+		tempScores[matchId] = { score1: 0, score2: 0 };
 
 		// Ricalcola completamente la classifica del girone
 		recalculateGroupStanding(match.group);
@@ -496,24 +506,15 @@
 															{:else}
 																<div class="d-flex justify-content-center align-items-center gap-2">
 																	<input type="number" class="form-control form-control-sm text-center" 
-																		bind:value={tempScores[match.id]?.score1} min="0" max="99" style="width: 60px;" placeholder="0"
-																		on:input={() => {
-																			if (!tempScores[match.id]) tempScores[match.id] = {};
-																		}}>
+																		bind:value={tempScores[match.id].score1} min="0" max="99" style="width: 60px;" placeholder="0">
 																	<span>-</span>
 																	<input type="number" class="form-control form-control-sm text-center" 
-																		bind:value={tempScores[match.id]?.score2} min="0" max="99" style="width: 60px;" placeholder="0"
-																		on:input={() => {
-																			if (!tempScores[match.id]) tempScores[match.id] = {};
-																		}}>
+																		bind:value={tempScores[match.id].score2} min="0" max="99" style="width: 60px;" placeholder="0">
 																</div>
 																<button class="btn btn-sm btn-success mt-2"
-																	disabled={!tempScores[match.id] || tempScores[match.id].score1 === undefined || tempScores[match.id].score2 === undefined}
+																	disabled={tempScores[match.id].score1 === undefined || tempScores[match.id].score2 === undefined}
 																	on:click={() => {
-																		if (tempScores[match.id]) {
-																			setGroupResult(match.id, Number(tempScores[match.id].score1) || 0, Number(tempScores[match.id].score2) || 0);
-																			delete tempScores[match.id]; // Pulisci dopo l'inserimento
-																		}
+																		setGroupResult(match.id, tempScores[match.id].score1 || 0, tempScores[match.id].score2 || 0);
 																	}}>
 																	Conferma Risultato
 																</button>
