@@ -139,13 +139,16 @@
 
 	function setGroupResult(matchId: string, score1: number, score2: number) {
 		const match = groupMatches.find(m => m.id === matchId);
-		if (!match || !match.t1 || !match.t2) return;
+		if (!match || !match.t1 || !match.t2 || !match.group) return;
 
-		// Se il risultato era già stato inserito, sottrai i vecchi valori
-		const standing1 = groupStandings[match.group!].find(s => s.team === match.t1);
-		const standing2 = groupStandings[match.group!].find(s => s.team === match.t2);
+		const groupName = match.group;
+		const standing1 = groupStandings[groupName].find(s => s.team.teamName === match.t1!.teamName);
+		const standing2 = groupStandings[groupName].find(s => s.team.teamName === match.t2!.teamName);
 
-		if (standing1 && standing2 && match.score1 !== undefined && match.score2 !== undefined) {
+		if (!standing1 || !standing2) return;
+
+		// Se il risultato era già stato inserito, rimuovi i vecchi valori
+		if (match.score1 !== undefined && match.score2 !== undefined) {
 			// Rimuovi vecchi risultati
 			standing1.played--;
 			standing2.played--;
@@ -170,53 +173,57 @@
 			}
 		}
 
+		// Imposta i nuovi risultati
 		match.score1 = score1;
 		match.score2 = score2;
 		match.w = score1 > score2 ? match.t1 : score1 < score2 ? match.t2 : null;
 
-		// Aggiorna classifiche con i nuovi risultati
-		if (standing1 && standing2) {
-			standing1.played++;
-			standing2.played++;
-			standing1.goalsFor += score1;
-			standing1.goalsAgainst += score2;
-			standing2.goalsFor += score2;
-			standing2.goalsAgainst += score1;
-			standing1.goalDifference = standing1.goalsFor - standing1.goalsAgainst;
-			standing2.goalDifference = standing2.goalsFor - standing2.goalsAgainst;
+		// Aggiungi i nuovi risultati
+		standing1.played++;
+		standing2.played++;
+		standing1.goalsFor += score1;
+		standing1.goalsAgainst += score2;
+		standing2.goalsFor += score2;
+		standing2.goalsAgainst += score1;
 
-			if (score1 > score2) {
-				standing1.won++;
-				standing1.points += 3;
-				standing2.lost++;
-			} else if (score2 > score1) {
-				standing2.won++;
-				standing2.points += 3;
-				standing1.lost++;
-			} else {
-				standing1.drawn++;
-				standing2.drawn++;
-				standing1.points += 1;
-				standing2.points += 1;
-			}
+		// Calcola la differenza reti
+		standing1.goalDifference = standing1.goalsFor - standing1.goalsAgainst;
+		standing2.goalDifference = standing2.goalsFor - standing2.goalsAgainst;
+
+		// Assegna i punti
+		if (score1 > score2) {
+			// Squadra 1 vince
+			standing1.won++;
+			standing1.points += 3;
+			standing2.lost++;
+		} else if (score2 > score1) {
+			// Squadra 2 vince
+			standing2.won++;
+			standing2.points += 3;
+			standing1.lost++;
+		} else {
+			// Pareggio
+			standing1.drawn++;
+			standing2.drawn++;
+			standing1.points += 1;
+			standing2.points += 1;
 		}
 
-		// Riordina classifiche
-		Object.keys(groupStandings).forEach(groupName => {
-			groupStandings[groupName].sort((a, b) => {
-				if (a.points !== b.points) return b.points - a.points;
-				if (a.goalDifference !== b.goalDifference) return b.goalDifference - a.goalDifference;
-				return b.goalsFor - a.goalsFor;
-			});
+		// Riordina la classifica di questo girone
+		groupStandings[groupName].sort((a, b) => {
+			if (a.points !== b.points) return b.points - a.points;
+			if (a.goalDifference !== b.goalDifference) return b.goalDifference - a.goalDifference;
+			return b.goalsFor - a.goalsFor;
 		});
 
+		// Forza l'aggiornamento reattivo
 		groupStandings = { ...groupStandings };
 		groupMatches = [...groupMatches];
 	}
 
 	function updateMatchResult(matchId: string) {
 		const match = groupMatches.find(m => m.id === matchId);
-		if (match && match.score1 !== undefined && match.score2 !== undefined) {
+		if (match && match.score1 !== undefined && match.score2 !== undefined && match.score1 >= 0 && match.score2 >= 0) {
 			setGroupResult(matchId, match.score1, match.score2);
 		}
 	}
@@ -449,22 +456,71 @@
 															{#if match.score1 !== undefined && match.score2 !== undefined}
 																<span class="badge bg-primary fs-6">{match.score1} - {match.score2}</span>
 																<button class="btn btn-sm btn-outline-secondary ms-2"
-																	on:click={() => {match.score1 = undefined; match.score2 = undefined; groupMatches = [...groupMatches];}}>
+																	on:click={() => {
+																		// Reset del match
+																		const oldScore1 = match.score1;
+																		const oldScore2 = match.score2;
+																		match.score1 = undefined; 
+																		match.score2 = undefined;
+																		
+																		// Rimuovi i vecchi risultati dalle classifiche
+																		if (oldScore1 !== undefined && oldScore2 !== undefined) {
+																			const groupName = match.group!;
+																			const standing1 = groupStandings[groupName].find(s => s.team.teamName === match.t1!.teamName);
+																			const standing2 = groupStandings[groupName].find(s => s.team.teamName === match.t2!.teamName);
+																			
+																			if (standing1 && standing2) {
+																				// Rimuovi i vecchi valori
+																				standing1.played--;
+																				standing2.played--;
+																				standing1.goalsFor -= oldScore1;
+																				standing1.goalsAgainst -= oldScore2;
+																				standing2.goalsFor -= oldScore2;
+																				standing2.goalsAgainst -= oldScore1;
+																				standing1.goalDifference = standing1.goalsFor - standing1.goalsAgainst;
+																				standing2.goalDifference = standing2.goalsFor - standing2.goalsAgainst;
+																				
+																				if (oldScore1 > oldScore2) {
+																					standing1.won--;
+																					standing1.points -= 3;
+																					standing2.lost--;
+																				} else if (oldScore2 > oldScore1) {
+																					standing2.won--;
+																					standing2.points -= 3;
+																					standing1.lost--;
+																				} else {
+																					standing1.drawn--;
+																					standing2.drawn--;
+																					standing1.points -= 1;
+																					standing2.points -= 1;
+																				}
+																				
+																				// Riordina classifica
+																				groupStandings[groupName].sort((a, b) => {
+																					if (a.points !== b.points) return b.points - a.points;
+																					if (a.goalDifference !== b.goalDifference) return b.goalDifference - a.goalDifference;
+																					return b.goalsFor - a.goalsFor;
+																				});
+																			}
+																		}
+																		
+																		// Forza aggiornamento
+																		groupStandings = { ...groupStandings };
+																		groupMatches = [...groupMatches];
+																	}}>
 																	Modifica
 																</button>
 															{:else}
 																<div class="d-flex justify-content-center align-items-center gap-2">
 																	<input type="number" class="form-control form-control-sm text-center" 
-																		bind:value={match.score1} min="0" max="99" style="width: 60px;" placeholder="0"
-																		on:input={() => updateMatchResult(match.id)}>
+																		bind:value={match.score1} min="0" max="99" style="width: 60px;" placeholder="0">
 																	<span>-</span>
 																	<input type="number" class="form-control form-control-sm text-center" 
-																		bind:value={match.score2} min="0" max="99" style="width: 60px;" placeholder="0"
-																		on:input={() => updateMatchResult(match.id)}>
+																		bind:value={match.score2} min="0" max="99" style="width: 60px;" placeholder="0">
 																</div>
 																<button class="btn btn-sm btn-success mt-2"
-																	disabled={match.score1 === undefined || match.score2 === undefined}
-																	on:click={() => setGroupResult(match.id, match.score1 || 0, match.score2 || 0)}>
+																	disabled={match.score1 === undefined || match.score2 === undefined || match.score1 < 0 || match.score2 < 0}
+																	on:click={() => setGroupResult(match.id, Number(match.score1) || 0, Number(match.score2) || 0)}>
 																	Conferma Risultato
 																</button>
 															{/if}
@@ -498,24 +554,24 @@
 														{#each groupStandings[groupName] || [] as standing, index}
 															<tr class={index < 2 ? 'table-success' : ''}>
 																<td><strong>{index + 1}</strong></td>
-																<td>{standing.team.teamName}</td>
+																<td class="fw-semibold">{standing.team.teamName}</td>
 																<td>{standing.played}</td>
-																<td>{standing.won}</td>
-																<td>{standing.drawn}</td>
-																<td>{standing.lost}</td>
-																<td>{standing.goalsFor}</td>
-																<td>{standing.goalsAgainst}</td>
-																<td class={standing.goalDifference > 0 ? 'text-success' : standing.goalDifference < 0 ? 'text-danger' : ''}>
+																<td class="text-success fw-bold">{standing.won}</td>
+																<td class="text-warning fw-bold">{standing.drawn}</td>
+																<td class="text-danger fw-bold">{standing.lost}</td>
+																<td class="text-primary">{standing.goalsFor}</td>
+																<td class="text-secondary">{standing.goalsAgainst}</td>
+																<td class={standing.goalDifference > 0 ? 'text-success fw-bold' : standing.goalDifference < 0 ? 'text-danger fw-bold' : 'fw-bold'}>
 																	{standing.goalDifference > 0 ? '+' : ''}{standing.goalDifference}
 																</td>
-																<td><strong class="text-primary">{standing.points}</strong></td>
+																<td><strong class="text-primary fs-6 badge bg-primary">{standing.points}</strong></td>
 															</tr>
 														{/each}
 													</tbody>
 												</table>
 											</div>
 											<small class="text-muted">
-												Le prime 2 squadre si qualificano per la fase eliminatoria
+												Le prime 2 squadre (evidenziate in verde) si qualificano per la fase eliminatoria
 											</small>
 										</div>
 									</div>
@@ -619,36 +675,3 @@
 		<button class="btn btn-danger" on:click={reset}>🔄 Reset Torneo</button>
 	</div>
 </div>
-<aside class="destra">
-	<table class="table">
-  <thead>
-    <tr>
-      <th scope="col">Posizione</th>
-      <th scope="col">Punte</th>
-      <th scope="col">Vittorie</th>
-      <th scope="col">Pareggi</th>
-	  <th scope="col">Sconfitte</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th scope="row">1</th>
-      <td>Mark</td>
-      <td>Otto</td>
-      <td>@mdo</td>
-    </tr>
-    <tr>
-      <th scope="row">2</th>
-      <td>Jacob</td>
-      <td>Thornton</td>
-      <td>@fat</td>
-    </tr>
-    <tr>
-      <th scope="row">3</th>
-      <td>John</td>
-      <td>Doe</td>
-      <td>@social</td>
-    </tr>
-  </tbody>
-</table>
-</aside>
