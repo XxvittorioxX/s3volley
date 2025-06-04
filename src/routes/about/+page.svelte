@@ -623,10 +623,11 @@
 	<table class="table">
   <thead>
     <tr>
-      <th scope="col">#</th>
-      <th scope="col">First</th>
-      <th scope="col">Last</th>
-      <th scope="col">Handle</th>
+      <th scope="col">Posizione</th>
+      <th scope="col">Punte</th>
+      <th scope="col">Vittorie</th>
+      <th scope="col">Pareggi</th>
+	  <th scope="col">Sconfitte</th>
     </tr>
   </thead>
   <tbody>
