@@ -523,8 +523,264 @@
 																		style="width: 60px;" 
 																		placeholder="0">
 																</div>
-																<button class="btn btn-sm btn-success mt-2"
-																	disabled={tempScores[match.id].score1 === undefined || tempScores[match.id].score2 === undefined}
-																	on:click={() => {
-																		setGroupResult(match.id, tempScores[match.id].score1 || 0, tempScores[match.id].score2 || 0);
-																	}}>
+	<!-- Questa è la continuazione del codice che dovrebbe seguire dopo il bottone corretto -->
+
+<button class="btn btn-sm btn-success mt-2"
+    disabled={tempScores[match.id].score1 === undefined || tempScores[match.id].score2 === undefined}
+    on:click={() => {
+        setGroupResult(match.id, tempScores[match.id].score1 || 0, tempScores[match.id].score2 || 0);
+    }}>
+    ✅ Salva Risultato
+</button>
+                                                            {/if}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {/each}
+
+                                            <!-- Classifica del girone -->
+                                            <div class="mt-3">
+                                                <h6>📊 Classifica</h6>
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Pos</th>
+                                                                <th>Squadra</th>
+                                                                <th>G</th>
+                                                                <th>V</th>
+                                                                <th>N</th>
+                                                                <th>P</th>
+                                                                <th>Pt</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {#each groupStandings[groupName] || [] as standing, index}
+                                                                <tr class={index < 2 ? 'table-success' : ''}>
+                                                                    <td>{index + 1}</td>
+                                                                    <td class="fw-semibold">{standing.team.teamName}</td>
+                                                                    <td>{standing.played}</td>
+                                                                    <td>{standing.won}</td>
+                                                                    <td>{standing.drawn}</td>
+                                                                    <td>{standing.lost}</td>
+                                                                    <td class="fw-bold">{standing.points}</td>
+                                                                </tr>
+                                                            {/each}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                {#if groupStandings[groupName] && groupStandings[groupName].length > 0}
+                                                    <small class="text-success">✅ Prime 2 squadre si qualificano</small>
+                                                {/if}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                {/each}
+
+                {#if allGroupMatchesPlayed}
+                    <div class="text-center mt-4">
+                        <button class="btn btn-success btn-lg" on:click={startKnockoutPhase}>
+                            🏆 Inizia Fase Eliminatoria
+                        </button>
+                    </div>
+                {/if}
+            </div>
+
+        {:else if currentPhase === 'knockout'}
+            <div class="mb-4">
+                <h2>🏆 Fase Eliminatoria</h2>
+                
+                {#each categories as category}
+                    <div class="mb-5">
+                        <h3 class="text-primary mb-4">
+                            🏐 {getCategoryConfig(category).name}
+                            <small class="text-muted">({getCategoryConfig(category).ageRange})</small>
+                        </h3>
+                        
+                        <div class="alert alert-info mb-3">
+                            <small>
+                                <strong>Regole:</strong> {getCategoryConfig(category).description}
+                                {#if getCategoryConfig(category).isTimeBased}
+                                    - Partite di {getCategoryConfig(category).playTime} minuti a tempo
+                                {:else}
+                                    - Set a {getCategoryConfig(category).maxScore} punti (vantaggio di 2)
+                                {/if}
+                            </small>
+                        </div>
+
+                        {#each knockoutRoundsByCategory[category] || [] as round}
+                            <div class="mb-4">
+                                <h5>
+                                    {#if round === Math.max(...knockoutRoundsByCategory[category])}
+                                        🏆 Finale
+                                    {:else if round === Math.max(...knockoutRoundsByCategory[category]) - 1}
+                                        🥉 Semifinale
+                                    {:else}
+                                        Round {round}
+                                    {/if}
+                                </h5>
+                                
+                                <div class="row">
+                                    {#each knockoutMatches.filter(m => m.round === round && m.category === category) as match}
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card">
+                                                <div class="card-body text-center">
+                                                    <div class="mb-2">
+                                                        <strong>{match.t1?.teamName || 'TBD'}</strong>
+                                                        <br>
+                                                        <small>vs</small>
+                                                        <br>
+                                                        <strong>{match.t2?.teamName || 'TBD'}</strong>
+                                                    </div>
+                                                    
+                                                    {#if match.w}
+                                                        <div class="alert alert-success p-2">
+                                                            🏆 <strong>{match.w.teamName}</strong>
+                                                        </div>
+                                                    {:else if match.t1 && match.t2}
+                                                        <div class="btn-group-vertical w-100">
+                                                            <button class="btn btn-outline-primary" 
+                                                                on:click={() => setKnockoutWinner(match.id, match.t1)}>
+                                                                Vince {match.t1.teamName}
+                                                            </button>
+                                                            <button class="btn btn-outline-primary" 
+                                                                on:click={() => setKnockoutWinner(match.id, match.t2)}>
+                                                                Vince {match.t2.teamName}
+                                                            </button>
+                                                        </div>
+                                                    {:else}
+                                                        <small class="text-muted">In attesa degli accoppiamenti</small>
+                                                    {/if}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {/each}
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                {/each}
+            </div>
+
+        {:else if currentPhase === 'finished'}
+            <div class="text-center">
+                <h2>🎉 Torneo Completato! 🎉</h2>
+                
+                <div class="row justify-content-center mt-4">
+                    {#each categories as category}
+                        <div class="col-md-4 mb-4">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark text-center">
+                                    <h5>{getCategoryConfig(category).name}</h5>
+                                    <small>({getCategoryConfig(category).ageRange})</small>
+                                </div>
+                                <div class="card-body text-center">
+                                    {#if winner[category]}
+                                        <h3 class="text-warning">🏆</h3>
+                                        <h4 class="text-primary">{winner[category].teamName}</h4>
+                                        <p class="text-muted">Campioni {getCategoryConfig(category).name}!</p>
+                                    {:else}
+                                        <p class="text-muted">Nessun vincitore</p>
+                                    {/if}
+                                </div>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+            </div>
+        {/if}
+
+        <div class="text-center mt-5">
+            <button class="btn btn-outline-danger" on:click={reset}>
+                🔄 Reset Torneo
+            </button>
+        </div>
+    </div>
+
+<style>
+    .container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .bg-white {
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(10px);
+    }
+    
+    .card {
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .table-success {
+        background-color: rgba(25, 135, 84, 0.1) !important;
+    }
+    
+    .btn {
+        border-radius: 25px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .badge {
+        border-radius: 15px;
+        padding: 8px 12px;
+    }
+    
+    .alert {
+        border-radius: 15px;
+        border: none;
+    }
+    
+    h1, h2, h3 {
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .text-primary {
+        color: #667eea !important;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        border: none;
+    }
+    
+    .btn-success {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        border: none;
+    }
+    
+    @media (max-width: 768px) {
+        .container {
+            padding: 15px;
+        }
+        
+        .card-body {
+            padding: 15px;
+        }
+        
+        .btn-group-vertical .btn {
+            margin-bottom: 5px;
+        }
+    }
+</style>
