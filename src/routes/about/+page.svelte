@@ -14,13 +14,6 @@
 		group?: string;
 		phase: 'group' | 'knockout';
 		category?: string;
-		sets?: {
-			set1?: { team1: number; team2: number };
-			set2?: { team1: number; team2: number };
-			set3?: { team1: number; team2: number };
-		};
-		matchType: 'time' | 'sets';
-		duration?: number; // in minuti per partite a tempo
 	}
 
 	interface GroupStanding {
@@ -30,40 +23,7 @@
 		drawn: number;
 		lost: number;
 		points: number;
-		setsWon?: number;
-		setsLost?: number;
-		pointsFor?: number;
-		pointsAgainst?: number;
 	}
-
-	// Configurazione categorie minivolley
-	const MINIVOLLEY_CATEGORIES = {
-		'S3_Under10': {
-			name: 'S3 Under 10',
-			ageRange: '9-10 anni',
-			matchType: 'time' as const,
-			duration: 10, // 10 minuti
-			maxScore: null // nessun limite per partite a tempo
-		},
-		'S3_Under11': {
-			name: 'S3 Under 11', 
-			ageRange: '10-11 anni',
-			matchType: 'sets' as const,
-			setsToWin: 2, // meglio di 3 set
-			pointsPerSet: 15,
-			minAdvantage: 2,
-			maxPoints: 25 // cap massimo per evitare set infiniti
-		},
-		'S3_Mixed': {
-			name: 'S3 Misto',
-			ageRange: '9-11 anni',
-			matchType: 'sets' as const,
-			setsToWin: 2,
-			pointsPerSet: 15,
-			minAdvantage: 2,
-			maxPoints: 25
-		}
-	};
 
 	let teams: Team[] = [];
 	let groupMatches: Match[] = [];
@@ -77,37 +37,12 @@
 	let groupsByCategory: { [category: string]: string[] } = {};
 	
 	// Variabili temporanee per i punteggi
-	let tempScores: { [key: string]: any } = {};
+	let tempScores: { [key: string]: { score1?: number, score2?: number } } = {};
 
 	onMount(() => {
 		teams = get(registeredTeams);
 		categories = [...new Set(teams.map(t => t.category))];
 	});
-
-	// Funzione helper per inizializzare i punteggi temporanei
-	function initTempScore(matchId: string, category: string) {
-		const categoryConfig = MINIVOLLEY_CATEGORIES[category as keyof typeof MINIVOLLEY_CATEGORIES];
-		
-		if (!tempScores[matchId]) {
-			if (categoryConfig?.matchType === 'time') {
-				tempScores[matchId] = { 
-					score1: 0, 
-					score2: 0,
-					timeElapsed: 0
-				};
-			} else {
-				tempScores[matchId] = {
-					sets: {
-						set1: { team1: 0, team2: 0 },
-						set2: { team1: 0, team2: 0 },
-						set3: { team1: 0, team2: 0 }
-					},
-					currentSet: 1,
-					setsWon: { team1: 0, team2: 0 }
-				};
-			}
-		}
-	}
 
 	function createGroups() {
 		if (teams.length < 3) {
@@ -140,8 +75,6 @@
 
 		// Crea MULTIPLI gironi per ogni categoria
 		Object.entries(teamsByCategory).forEach(([category, categoryTeams]) => {
-			const categoryConfig = MINIVOLLEY_CATEGORIES[category as keyof typeof MINIVOLLEY_CATEGORIES];
-			
 			// Mescola le squadre della categoria
 			const shuffled = [...categoryTeams].sort(() => Math.random() - 0.5);
 			
@@ -173,9 +106,8 @@
 				// Crea partite del girone (tutti contro tutti)
 				for (let i = 0; i < groupTeams.length; i++) {
 					for (let j = i + 1; j < groupTeams.length; j++) {
-						const matchId = `${groupName}-${i}-${j}`;
-						const match: Match = {
-							id: matchId,
+						groupMatches.push({
+							id: `${groupName}-${i}-${j}`,
 							t1: groupTeams[i],
 							t2: groupTeams[j],
 							w: null,
@@ -183,19 +115,8 @@
 							score2: undefined,
 							group: groupName,
 							phase: 'group',
-							category: category,
-							matchType: categoryConfig?.matchType || 'sets',
-							duration: categoryConfig?.duration
-						};
-
-						if (categoryConfig?.matchType === 'sets') {
-							match.sets = {};
-						}
-
-						groupMatches.push(match);
-						
-						// Inizializza i punteggi temporanei
-						initTempScore(matchId, category);
+							category: category
+						});
 					}
 				}
 
@@ -206,11 +127,7 @@
 					won: 0,
 					drawn: 0,
 					lost: 0,
-					points: 0,
-					setsWon: 0,
-					setsLost: 0,
-					pointsFor: 0,
-					pointsAgainst: 0
+					points: 0
 				}));
 			}
 		});
@@ -230,142 +147,85 @@
 
 		console.log(`Recalculating standings for ${groupName}`);
 
-		// Reset completo delle statistiche
+		// Reset completo delle statistiche - mantieni i riferimenti alle squadre originali
 		groupStandings[groupName] = groupTeams.map(team => ({
 			team,
 			played: 0,
 			won: 0,
 			drawn: 0,
 			lost: 0,
-			points: 0,
-			setsWon: 0,
-			setsLost: 0,
-			pointsFor: 0,
-			pointsAgainst: 0
+			points: 0
 		}));
 
 		// Ricalcola da tutte le partite giocate
 		const groupMatchesPlayed = groupMatches.filter(m => 
 			m.group === groupName && 
-			((m.matchType === 'time' && m.score1 !== undefined && m.score2 !== undefined) ||
-			 (m.matchType === 'sets' && m.w !== null))
+			m.score1 !== undefined && 
+			m.score2 !== undefined &&
+			m.score1 !== null &&
+			m.score2 !== null
 		);
 
 		console.log(`Found ${groupMatchesPlayed.length} played matches for ${groupName}`);
 
 		groupMatchesPlayed.forEach(match => {
+			// Usa il riferimento diretto alla squadra invece del nome
 			const standing1 = groupStandings[groupName].find(s => s.team === match.t1);
 			const standing2 = groupStandings[groupName].find(s => s.team === match.t2);
 
 			if (standing1 && standing2) {
+				console.log(`Processing match: ${match.t1?.teamName} ${match.score1} - ${match.score2} ${match.t2?.teamName}`);
+				
 				standing1.played++;
 				standing2.played++;
 
-				if (match.matchType === 'time') {
-					// Partite a tempo
-					standing1.pointsFor! += match.score1 || 0;
-					standing1.pointsAgainst! += match.score2 || 0;
-					standing2.pointsFor! += match.score2 || 0;
-					standing2.pointsAgainst! += match.score1 || 0;
-
-					if (match.score1! > match.score2!) {
-						standing1.won++;
-						standing1.points += 3;
-						standing2.lost++;
-					} else if (match.score2! > match.score1!) {
-						standing2.won++;
-						standing2.points += 3;
-						standing1.lost++;
-					} else {
-						standing1.drawn++;
-						standing2.drawn++;
-						standing1.points += 1;
-						standing2.points += 1;
-					}
+				if (match.score1! > match.score2!) {
+					// Squadra 1 vince
+					standing1.won++;
+					standing1.points += 3;
+					standing2.lost++;
+				} else if (match.score2! > match.score1!) {
+					// Squadra 2 vince
+					standing2.won++;
+					standing2.points += 3;
+					standing1.lost++;
 				} else {
-					// Partite a set
-					if (match.w === match.t1) {
-						standing1.won++;
-						standing1.points += 3;
-						standing2.lost++;
-					} else if (match.w === match.t2) {
-						standing2.won++;
-						standing2.points += 3;
-						standing1.lost++;
-					}
-
-					// Calcola set vinti/persi se disponibili
-					if (match.sets) {
-						Object.values(match.sets).forEach(set => {
-							if (set && set.team1 !== undefined && set.team2 !== undefined) {
-								if (set.team1 > set.team2) {
-									standing1.setsWon!++;
-									standing2.setsLost!++;
-								} else if (set.team2 > set.team1) {
-									standing2.setsWon!++;
-									standing1.setsLost!++;
-								}
-								standing1.pointsFor! += set.team1;
-								standing1.pointsAgainst! += set.team2;
-								standing2.pointsFor! += set.team2;
-								standing2.pointsAgainst! += set.team1;
-							}
-						});
-					}
+					// Pareggio
+					standing1.drawn++;
+					standing2.drawn++;
+					standing1.points += 1;
+					standing2.points += 1;
 				}
+			} else {
+				console.error(`Teams not found for match:`, match.t1?.teamName, match.t2?.teamName);
 			}
 		});
 
-		// Ordina per punti, poi per differenza set (se disponibile), poi per differenza punti
+		// Ordina per punti (decrescente), poi per nome in caso di parità
 		groupStandings[groupName].sort((a, b) => {
 			if (b.points !== a.points) {
 				return b.points - a.points;
 			}
-			
-			const setDiffA = (a.setsWon || 0) - (a.setsLost || 0);
-			const setDiffB = (b.setsWon || 0) - (b.setsLost || 0);
-			if (setDiffB !== setDiffA) {
-				return setDiffB - setDiffA;
-			}
-			
-			const pointDiffA = (a.pointsFor || 0) - (a.pointsAgainst || 0);
-			const pointDiffB = (b.pointsFor || 0) - (b.pointsAgainst || 0);
-			if (pointDiffB !== pointDiffA) {
-				return pointDiffB - pointDiffA;
-			}
-			
 			return a.team.teamName.localeCompare(b.team.teamName);
 		});
+
+		console.log(`Final standings for ${groupName}:`, 
+			groupStandings[groupName].map(s => 
+				`${s.team.teamName}: ${s.points}pts (${s.played}P ${s.won}W ${s.drawn}D ${s.lost}L)`
+			)
+		);
 	}
 
-	function setGroupResult(matchId: string, result: any) {
+	function setGroupResult(matchId: string, score1: number, score2: number) {
 		const match = groupMatches.find(m => m.id === matchId);
 		if (!match || !match.t1 || !match.t2 || !match.group) return;
 
-		console.log(`Setting result for ${matchId}:`, result);
+		console.log(`Setting result for ${matchId}: ${score1}-${score2}`);
 
-		if (match.matchType === 'time') {
-			// Partite a tempo
-			match.score1 = result.score1;
-			match.score2 = result.score2;
-			match.w = result.score1 > result.score2 ? match.t1 : 
-					   result.score1 < result.score2 ? match.t2 : null;
-		} else {
-			// Partite a set
-			match.sets = result.sets;
-			match.w = result.winner;
-			
-			// Calcola il punteggio finale (set vinti)
-			let setsTeam1 = 0, setsTeam2 = 0;
-			Object.values(result.sets).forEach((set: any) => {
-				if (set && set.team1 !== undefined && set.team2 !== undefined) {
-					if (set.team1 > set.team2) setsTeam1++;
-					else if (set.team2 > set.team1) setsTeam2++;
-				}
-			});
-			match.score1 = setsTeam1;
-			match.score2 = setsTeam2;
-		}
+		// Aggiorna il risultato della partita
+		match.score1 = score1;
+		match.score2 = score2;
+		match.w = score1 > score2 ? match.t1 : score1 < score2 ? match.t2 : null;
 
 		// Ricalcola completamente la classifica del girone
 		recalculateGroupStanding(match.group);
@@ -379,7 +239,7 @@
 
 	function resetMatchResult(matchId: string) {
 		const match = groupMatches.find(m => m.id === matchId);
-		if (!match || !match.group || !match.category) return;
+		if (!match || !match.group) return;
 
 		console.log(`Resetting result for ${matchId}`);
 
@@ -387,10 +247,9 @@
 		match.score1 = undefined;
 		match.score2 = undefined;
 		match.w = null;
-		match.sets = {};
 
-		// Reinizializza i valori temporanei
-		initTempScore(matchId, match.category);
+		// Inizializza i valori temporanei per permettere la rieditazione
+		tempScores[matchId] = { score1: undefined, score2: undefined };
 
 		// Ricalcola completamente la classifica del girone
 		recalculateGroupStanding(match.group);
@@ -429,7 +288,6 @@
 		knockoutMatches = [];
 		
 		categories.forEach(category => {
-			const categoryConfig = MINIVOLLEY_CATEGORIES[category as keyof typeof MINIVOLLEY_CATEGORIES];
 			const categoryQualified = qualifiedTeams[category];
 			if (categoryQualified.length < 2) return;
 
@@ -454,23 +312,15 @@
 			let current = [];
 
 			for (let i = 0; i < Math.min(shuffledFirsts.length, shuffledSeconds.length); i++) {
-				const match: Match = {
+				current.push({
 					id: `ko-${category}-${round}-${i}`,
 					t1: shuffledFirsts[i],
 					t2: shuffledSeconds[i],
 					w: null,
 					round,
-					phase: 'knockout',
-					category,
-					matchType: categoryConfig?.matchType || 'sets',
-					duration: categoryConfig?.duration
-				};
-
-				if (categoryConfig?.matchType === 'sets') {
-					match.sets = {};
-				}
-
-				current.push(match);
+					phase: 'knockout' as const,
+					category
+				});
 			}
 
 			// Se ci sono più squadre qualificate, aggiungi gli altri accoppiamenti
@@ -480,23 +330,15 @@
 
 			for (let i = 0; i < remaining.length; i += 2) {
 				if (remaining[i + 1]) {
-					const match: Match = {
+					current.push({
 						id: `ko-${category}-${round}-${current.length}`,
 						t1: remaining[i],
 						t2: remaining[i + 1],
 						w: null,
 						round,
-						phase: 'knockout',
-						category,
-						matchType: categoryConfig?.matchType || 'sets',
-						duration: categoryConfig?.duration
-					};
-
-					if (categoryConfig?.matchType === 'sets') {
-						match.sets = {};
-					}
-
-					current.push(match);
+						phase: 'knockout' as const,
+						category
+					});
 				}
 			}
 
@@ -507,23 +349,15 @@
 				round++;
 				const next = [];
 				for (let i = 0; i < current.length; i += 2) {
-					const match: Match = {
+					next.push({ 
 						id: `ko-${category}-${round}-${i / 2}`, 
 						t1: null, 
 						t2: null, 
 						w: null, 
 						round, 
-						phase: 'knockout',
-						category,
-						matchType: categoryConfig?.matchType || 'sets',
-						duration: categoryConfig?.duration
-					};
-
-					if (categoryConfig?.matchType === 'sets') {
-						match.sets = {};
-					}
-
-					next.push(match);
+						phase: 'knockout' as const,
+						category
+					});
 				}
 				knockoutMatches = [...knockoutMatches, ...next];
 				current = next;
@@ -587,100 +421,27 @@
 		return acc;
 	}, {} as { [key: string]: number[] });
 
-	$: allGroupMatchesPlayed = groupMatches.length > 0 && groupMatches.every(m => 
-		(m.matchType === 'time' && m.score1 !== undefined && m.score2 !== undefined) ||
-		(m.matchType === 'sets' && m.w !== null)
-	);
-
-	// Helper function per verificare se un set è valido
-	function isValidSet(score1: number, score2: number, category: string): boolean {
-		const config = MINIVOLLEY_CATEGORIES[category as keyof typeof MINIVOLLEY_CATEGORIES];
-		if (!config || config.matchType !== 'sets') return false;
-
-		const maxScore = Math.max(score1, score2);
-		const minScore = Math.min(score1, score2);
-		
-		// Deve raggiungere almeno il punteggio minimo
-		if (maxScore < config.pointsPerSet) return false;
-		
-		// Non deve superare il cap massimo
-		if (maxScore > config.maxPoints) return false;
-		
-		// Deve avere il vantaggio minimo O essere al cap massimo
-		const advantage = maxScore - minScore;
-		return advantage >= config.minAdvantage || maxScore === config.maxPoints;
-	}
-
-	// Helper function per calcolare il vincitore di una partita a set
-	function calculateSetsWinner(sets: any, category: string): Team | null {
-		const config = MINIVOLLEY_CATEGORIES[category as keyof typeof MINIVOLLEY_CATEGORIES];
-		if (!config || config.matchType !== 'sets') return null;
-
-		let setsTeam1 = 0, setsTeam2 = 0;
-		
-		Object.values(sets).forEach((set: any) => {
-			if (set && set.team1 !== undefined && set.team2 !== undefined) {
-				if (set.team1 > set.team2) setsTeam1++;
-				else if (set.team2 > set.team1) setsTeam2++;
-			}
-		});
-
-		return setsTeam1 > setsTeam2 ? null : null; // Will be set by the UI
-	}
+	$: allGroupMatchesPlayed = groupMatches.length > 0 && groupMatches.every(m => m.score1 !== undefined && m.score2 !== undefined);
 </script>
 
 <svelte:head>
-	<title>Torneo Minivolley S3 - Gironi e Eliminazione Diretta</title>
+	<title>Torneo con Categorie - Gironi e Eliminazione Diretta</title>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 </svelte:head>
 
 <div class="container my-5 p-4 bg-white rounded shadow">
-	<h1 class="text-center mb-5">🏐 Torneo Minivolley S3 - Gironi e Eliminazione Diretta</h1>
+	<h1 class="text-center mb-5">Torneo con Categorie - Gironi e Eliminazione Diretta</h1>
 
 	{#if currentPhase === 'setup'}
 		<div class="mb-4">
 			<h2>Squadre Registrate per Categoria</h2>
-			
-			<!-- Info sulle categorie -->
-			<div class="alert alert-info mb-4">
-				<h5>📋 Categorie e Regolamenti</h5>
-				<div class="row">
-					{#each Object.entries(MINIVOLLEY_CATEGORIES) as [key, config]}
-						<div class="col-md-4 mb-2">
-							<strong>{config.name}</strong> ({config.ageRange})<br>
-							<small class="text-muted">
-								{#if config.matchType === 'time'}
-									⏱️ Partite a tempo ({config.duration} min)
-								{:else}
-									🏆 Meglio di 3 set (a {config.pointsPerSet} punti)
-								{/if}
-							</small>
-						</div>
-					{/each}
-				</div>
-			</div>
-
 			{#if teams.length === 0}
 				<p class="text-muted">Nessuna squadra registrata</p>
 			{:else}
 				{#each categories as category}
-					{@const categoryConfig = MINIVOLLEY_CATEGORIES[category]}
 					<div class="card mb-3">
 						<div class="card-header">
-							<h4>
-								{categoryConfig ? categoryConfig.name : category} 
-								({teams.filter(t => t.category === category).length} squadre)
-							</h4>
-							{#if categoryConfig}
-								<small class="text-muted">
-									{categoryConfig.ageRange} - 
-									{#if categoryConfig.matchType === 'time'}
-										Partite a tempo di {categoryConfig.duration} minuti
-									{:else}
-										Meglio di 3 set a {categoryConfig.pointsPerSet} punti (vantaggio {categoryConfig.minAdvantage})
-									{/if}
-								</small>
-							{/if}
+							<h4>{category} ({teams.filter(t => t.category === category).length} squadre)</h4>
 						</div>
 						<div class="card-body">
 							<div class="list-group">
@@ -705,21 +466,8 @@
 			<h2>Fase a Gironi</h2>
 			
 			{#each categories as category}
-				{@const categoryConfig = MINIVOLLEY_CATEGORIES[category]}
 				<div class="mb-5">
-					<h3 class="text-primary mb-4">
-						🏐 {categoryConfig ? categoryConfig.name : category}
-						{#if categoryConfig}
-							<small class="text-muted">
-								- {categoryConfig.ageRange}
-								{#if categoryConfig.matchType === 'time'}
-									(⏱️ {categoryConfig.duration} min)
-								{:else}
-									(🏆 Set a {categoryConfig.pointsPerSet})
-								{/if}
-							</small>
-						{/if}
-					</h3>
+					<h3 class="text-primary mb-4">Categoria {category}</h3>
 					
 					{#each groupsByCategory[category] || [] as groupName}
 						<div class="row justify-content-center mb-4">
@@ -734,19 +482,182 @@
 									<div class="card-body">
 										<!-- Partite del girone -->
 										{#each groupMatches.filter(m => m.group === groupName) as match}
-											<div class="card mb-3">
+											<div class="card mb-2">
 												<div class="card-body p-3">
 													<div class="row align-items-center">
 														<div class="col-3 text-end fw-semibold">{match.t1?.teamName}</div>
 														<div class="col-6 text-center">
-															{#if categoryConfig?.matchType === 'time'}
-																<!-- Partite a tempo -->
-																{#if match.score1 !== undefined && match.score2 !== undefined}
-																	<span class="badge bg-primary fs-6">{match.score1} - {match.score2}</span>
-																	<button class="btn btn-sm btn-outline-secondary ms-2"
-																		on:click={() => resetMatchResult(match.id)}>
-																		Modifica
-																	</button>
-																{:else}
-																	<div class="d-flex justify-content-center align-items-center gap-2">
-																		<input type="number" class="form-control form-control-sm text-center"
+															{#if match.score1 !== undefined && match.score2 !== undefined}
+																<span class="badge bg-primary fs-6">{match.score1} - {match.score2}</span>
+																<button class="btn btn-sm btn-outline-secondary ms-2"
+																	on:click={() => resetMatchResult(match.id)}>
+																	Modifica
+																</button>
+															{:else}
+																<div class="d-flex justify-content-center align-items-center gap-2">
+																	<input type="number" class="form-control form-control-sm text-center" 
+																		bind:value={tempScores[match.id]?.score1} min="0" max="99" style="width: 60px;" placeholder="0"
+																		on:input={() => {
+																			if (!tempScores[match.id]) tempScores[match.id] = {};
+																		}}>
+																	<span>-</span>
+																	<input type="number" class="form-control form-control-sm text-center" 
+																		bind:value={tempScores[match.id]?.score2} min="0" max="99" style="width: 60px;" placeholder="0"
+																		on:input={() => {
+																			if (!tempScores[match.id]) tempScores[match.id] = {};
+																		}}>
+																</div>
+																<button class="btn btn-sm btn-success mt-2"
+																	disabled={!tempScores[match.id] || tempScores[match.id].score1 === undefined || tempScores[match.id].score2 === undefined}
+																	on:click={() => {
+																		if (tempScores[match.id]) {
+																			setGroupResult(match.id, Number(tempScores[match.id].score1) || 0, Number(tempScores[match.id].score2) || 0);
+																			delete tempScores[match.id]; // Pulisci dopo l'inserimento
+																		}
+																	}}>
+																	Conferma Risultato
+																</button>
+															{/if}
+														</div>
+														<div class="col-3 fw-semibold">{match.t2?.teamName}</div>
+													</div>
+												</div>
+											</div>
+										{/each}
+										
+										<!-- Classifica del girone -->
+										<div class="mt-4">
+											<h6 class="text-success">Classifica {groupName.split('_').slice(1).join(' ')}</h6>
+											<div class="table-responsive">
+												<table class="table table-sm table-striped">
+													<thead class="table-dark">
+														<tr>
+															<th>Pos</th>
+															<th>Squadra</th>
+															<th>P</th>
+															<th>V</th>
+															<th>N</th>
+															<th>S</th>
+															<th>Punti</th>
+														</tr>
+													</thead>
+													<tbody>
+														{#each groupStandings[groupName] || [] as standing, index}
+															<tr class="{index < 2 ? 'table-success' : ''}">
+																<td>{index + 1}</td>
+																<td>{standing.team.teamName}</td>
+																<td>{standing.played}</td>
+																<td>{standing.won}</td>
+																<td>{standing.drawn}</td>
+																<td>{standing.lost}</td>
+																<td><strong>{standing.points}</strong></td>
+															</tr>
+														{/each}
+													</tbody>
+												</table>
+											</div>
+											<small class="text-muted">
+												Le prime 2 squadre (evidenziate in verde) si qualificano per la fase eliminatoria
+											</small>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/each}
+
+			{#if allGroupMatchesPlayed}
+				<div class="text-center mt-5">
+					<button class="btn btn-success btn-lg" on:click={startKnockoutPhase}>
+						🏆 Inizia Fase Eliminazione Diretta
+					</button>
+				</div>
+			{/if}
+		</div>
+
+	{:else if currentPhase === 'knockout'}
+		<div class="mb-4">
+			<h2>Fase Eliminazione Diretta</h2>
+
+			{#each categories as category}
+				<div class="mb-5">
+					<h3 class="text-primary mb-3">Categoria {category}</h3>
+					<p class="text-muted mb-4">Squadre qualificate: {qualifiedTeams[category]?.map(t => t.teamName).join(', ') || 'Nessuna'}</p>
+
+					<div class="d-flex flex-wrap gap-4 justify-content-center overflow-auto">
+						{#each knockoutRoundsByCategory[category] || [] as round}
+							<div class="border rounded p-3" style="min-width: 280px; max-width: 280px;">
+								<h4 class="text-center mb-3">
+									{round === Math.max(...(knockoutRoundsByCategory[category] || [])) ? '🏆 FINALE' : 
+									 round === Math.max(...(knockoutRoundsByCategory[category] || [])) - 1 ? '🥇 SEMIFINALE' :
+									 round === Math.max(...(knockoutRoundsByCategory[category] || [])) - 2 ? '🥈 QUARTI' : `TURNO ${round}`}
+								</h4>
+								{#each knockoutMatches.filter(m => m.round === round && m.category === category) as match}
+									<div class="card mb-3">
+										<div class="card-body p-2">
+											<div class="d-flex flex-column gap-1">
+												<div class="p-2 rounded border
+													{match.w === match.t1 ? 'bg-success text-white' : 'bg-light'}">
+													<strong>{match.t1?.teamName || 'TBD'}</strong>
+												</div>
+												<div class="text-center text-muted small">VS</div>
+												<div class="p-2 rounded border
+													{match.w === match.t2 ? 'bg-success text-white' : 'bg-light'}">
+													<strong>{match.t2?.teamName || 'TBD'}</strong>
+												</div>
+											</div>
+
+											{#if match.t1 && match.t2 && !match.w}
+												<div class="d-flex gap-2 mt-3">
+													<button class="btn btn-outline-primary btn-sm flex-grow-1"
+														on:click={() => setKnockoutWinner(match.id, match.t1)}>
+														{match.t1.teamName}
+													</button>
+													<button class="btn btn-outline-primary btn-sm flex-grow-1"
+														on:click={() => setKnockoutWinner(match.id, match.t2)}>
+														{match.t2.teamName}
+													</button>
+												</div>
+											{:else if match.w}
+												<div class="mt-3 text-center">
+													<span class="badge bg-success fs-6">🎉 Vince: {match.w.teamName}</span>
+												</div>
+											{/if}
+										</div>
+									</div>
+								{/each}
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/each}
+		</div>
+
+	{:else if currentPhase === 'finished'}
+		<div class="mb-4">
+			<h2 class="text-center mb-4">🏆 VINCITORI DEL TORNEO 🏆</h2>
+			<div class="row justify-content-center">
+				{#each categories as category}
+					{#if winner[category]}
+						<div class="col-md-4 mb-3">
+							<div class="card text-center border-warning">
+								<div class="card-body bg-warning bg-opacity-10">
+									<h3 class="card-title text-warning">🏆</h3>
+									<h4 class="card-title">{category}</h4>
+									<h5 class="card-text text-primary">{winner[category]?.teamName}</h5>
+									<small class="text-muted">Allenatore: {winner[category]?.coachName}</small>
+								</div>
+							</div>
+						</div>
+					{/if}
+				{/each}
+			</div>
+		</div>
+	{/if}
+
+	<div class="text-center mt-5">
+		<button class="btn btn-danger" on:click={reset}>🔄 Reset Torneo</button>
+	</div>
+</div>
