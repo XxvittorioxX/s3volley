@@ -544,27 +544,20 @@
 															<th>V</th>
 															<th>N</th>
 															<th>S</th>
-															<th>GF</th>
-															<th>GS</th>
-															<th>DR</th>
 															<th>Punti</th>
 														</tr>
 													</thead>
 													<tbody>
 														{#each groupStandings[groupName] || [] as standing, index}
-															<tr class={index < 2 ? 'table-success' : ''}>
-																<td><strong>{index + 1}</strong></td>
-																<td class="fw-semibold">{standing.team.teamName}</td>
+															<tr>
+																<td>{index + 1}</td>
+																<td>{standing.team.teamName}</td>
 																<td>{standing.played}</td>
-																<td class="text-success fw-bold">{standing.won}</td>
-																<td class="text-warning fw-bold">{standing.drawn}</td>
-																<td class="text-danger fw-bold">{standing.lost}</td>
-																<td class="text-primary">{standing.goalsFor}</td>
+																<td>{standing.won}</td>
+																<td>{standing.drawn}</td>
+																<td>{standing.lost}</td>
+																<td>{standing.points}</td>
 																<td class="text-secondary">{standing.goalsAgainst}</td>
-																<td class={standing.goalDifference > 0 ? 'text-success fw-bold' : standing.goalDifference < 0 ? 'text-danger fw-bold' : 'fw-bold'}>
-																	{standing.goalDifference > 0 ? '+' : ''}{standing.goalDifference}
-																</td>
-																<td><strong class="text-primary fs-6 badge bg-primary">{standing.points}</strong></td>
 															</tr>
 														{/each}
 													</tbody>
