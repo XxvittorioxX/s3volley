@@ -45,8 +45,8 @@
 	});
 
 	function createGroups() {
-		if (teams.length < 2) {
-			alert('Servono almeno 2 squadre per i gironi!');
+		if (teams.length < 3) {
+			alert('Servono almeno 3 squadre per i gironi!');
 			return;
 		}
 
@@ -59,10 +59,10 @@
 			teamsByCategory[team.category].push(team);
 		});
 
-		// Verifica che ogni categoria abbia almeno 4 squadre
+		// Verifica che ogni categoria abbia almeno 3 squadre
 		for (const [category, categoryTeams] of Object.entries(teamsByCategory)) {
-			if (categoryTeams.length < 4) {
-				alert(`La categoria ${category} ha solo ${categoryTeams.length} squadra/e. Servono almeno 4 squadre per categoria!`);
+			if (categoryTeams.length < 3) {
+				alert(`La categoria ${category} ha solo ${categoryTeams.length} squadra/e. Servono almeno 3 squadre per categoria!`);
 				return;
 			}
 		}
@@ -77,9 +77,15 @@
 			// Mescola le squadre della categoria
 			const shuffled = [...categoryTeams].sort(() => Math.random() - 0.5);
 			
-			// Determina il numero di gironi (4 squadre per girone idealmente)
-			const teamsPerGroup = 4;
-			const numGroups = Math.ceil(shuffled.length / teamsPerGroup);
+			// Determina il numero di gironi - cerca di fare gironi da 3-5 squadre
+			let numGroups = 1;
+			let teamsPerGroup = shuffled.length;
+			
+			// Se ci sono più di 5 squadre, crea più gironi
+			if (shuffled.length > 5) {
+				numGroups = Math.ceil(shuffled.length / 4); // Prova gironi da ~4 squadre
+				teamsPerGroup = Math.ceil(shuffled.length / numGroups);
+			}
 			
 			groupsByCategory[category] = [];
 
@@ -88,10 +94,11 @@
 				const groupName = `${category}_Girone_${String.fromCharCode(65 + g)}`; // A, B, C, etc.
 				groupsByCategory[category].push(groupName);
 				
-				// Distribuisci le squadre nei gironi
-				const startIndex = g * teamsPerGroup;
-				const endIndex = Math.min(startIndex + teamsPerGroup, shuffled.length);
-				const groupTeams = shuffled.slice(startIndex, endIndex);
+				// Distribuisci le squadre nei gironi in modo più equilibrato
+				const groupTeams = [];
+				for (let i = g; i < shuffled.length; i += numGroups) {
+					groupTeams.push(shuffled[i]);
+				}
 				
 				groups[groupName] = groupTeams;
 
