@@ -1,11 +1,6 @@
 <script lang="ts">
-	// Definisci l'interfaccia Team direttamente qui per ora
-	interface Team {
-		id: string;
-		teamName: string;
-		coachName: string;
-		category: string;
-	}
+	import { onMount } from 'svelte';
+	import type { Team } from '$lib/stores/teams';
 
 	interface CategoryConfig {
 		name: string;
@@ -51,17 +46,22 @@
 		}
 	};
 
-	// Dati mock per testare la pagina
-	let teams: Team[] = [
-		{ id: '1', teamName: 'Lions S1', coachName: 'Mario Rossi', category: 'S1' },
-		{ id: '2', teamName: 'Eagles S1', coachName: 'Luigi Verdi', category: 'S1' },
-		{ id: '3', teamName: 'Tigers S1', coachName: 'Paolo Bianchi', category: 'S1' },
-		{ id: '4', teamName: 'Sharks S2', coachName: 'Anna Neri', category: 'S2' },
-		{ id: '5', teamName: 'Dragons S2', coachName: 'Sofia Blu', category: 'S2' }
-	];
+	// Inizializza le variabili reattive
+	let teams: Team[] = [];
+	let categories: string[] = [];
 
-	// Ricava le categorie dai teams esistenti
-	$: categories = [...new Set(teams.map(t => t.category))];
+	// Se hai un store per i team, importalo e usalo
+	 import { teamsStore } from '$lib/stores/teams';
+	
+	onMount(() => {
+		// Carica i dati dei team se disponibili
+		 teams = $teamsStore || [];
+		 categories = [...new Set(teams.map(t => t.category))];
+		
+		// Per ora, dati di esempio (rimuovi quando colleghi il vero store)
+		teams = [];
+		categories = Object.keys(categoryConfigs);
+	});
 
 	export function getCategoryConfig(category: string): CategoryConfig {
 		return categoryConfigs[category] || {
@@ -73,10 +73,13 @@
 			ageRange: 'N/A'
 		};
 	}
+
+	// Funzione reattiva per calcolare le categorie dai team
+	$: categories = [...new Set(teams.map(t => t.category))];
 </script>
 
 <svelte:head>
-	<title>Torneo Minivolley - Regole e Squadre</title>
+	<title>Regole del Torneo</title>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 </svelte:head>
 
