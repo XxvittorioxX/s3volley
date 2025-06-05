@@ -674,3 +674,5 @@
 	.card-header { background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; font-weight: 600; }
 	.badge { font-size: 0.9em; }
 	.table-success
+
+</style>
