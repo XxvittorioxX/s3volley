@@ -22,7 +22,7 @@
 			maxScore: 10,
 			playTime: 8,
 			isTimeBased: true,
-			description: 'Livello base - 8 minuti a tempo',
+			description: 'Livello base - Set a 8 punti(vantaggio 2)',
 			ageRange: '6-8 anni'
 		},
 		S2: {
@@ -30,7 +30,7 @@
 			maxScore: 12,
 			playTime: 10,
 			isTimeBased: true,
-			description: 'Livello intermedio - 10 minuti a tempo',
+			description: 'Livello intermedio - Set a 10 punti(vantaggio 2)',
 			ageRange: '8-10 anni'
 		},
 		S3: {
@@ -48,6 +48,14 @@
 			isTimeBased: false,
 			description: 'Volley giovanile - Set a 21 punti',
 			ageRange: '11-12 anni'
+		},
+		Seniores: {
+			name: 'Seniores',
+			maxScore: 25,
+			playTime: 15,
+			isTimeBased: false,
+			description: 'Volley esperto - Set a 25 punti',
+			ageRange: '60-65 anni'
 		}
 	};
 

@@ -33,12 +33,11 @@
 	}
 
 	const categoryRules: { [key: string]: CategoryRules } = {
-		'S1': { maxScore: 15, minAdvantage: 1, description: 'Set a 15 punti' },
-		'S2': { maxScore: 15, minAdvantage: 1, description: 'Set a 15 punti' },
+		'S1': { maxScore: 8, minAdvantage: 1, description: 'Set a 15 punti' },
+		'S2': { maxScore: 10, minAdvantage: 1, description: 'Set a 15 punti' },
 		'S3': { maxScore: 15, minAdvantage: 2, description: 'Set a 15 punti (vantaggio 2)' },
-		'Propaganda': { maxScore: 25, minAdvantage: 2, description: 'Set a 25 punti (vantaggio 2)' },
 		'Under12': { maxScore: 15, minAdvantage: 2, description: 'Set a 15 punti (vantaggio 2)' },
-		'Under14': { maxScore: 25, minAdvantage: 2, description: 'Set a 25 punti (vantaggio 2)' }
+		'Seniores': { maxScore: 25, minAdvantage: 2, description: 'Set a 25 punti (vantaggio 2)' }
 	};
 
 	let teams: Team[] = [];
