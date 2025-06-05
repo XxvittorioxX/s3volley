@@ -46,24 +46,15 @@
 		}
 	};
 
-	// Inizializza le variabili reattive
 	let teams: Team[] = [];
 	let categories: string[] = [];
 
-	// Se hai un store per i team, importalo e usalo
-	 import { teamsStore } from '$lib/stores/teams';
-	
 	onMount(() => {
-		// Carica i dati dei team se disponibili
-		 teams = $teamsStore || [];
-		categories = [...new Set(teams.map(t => t.category))];
-		
-		// Per ora, dati di esempio (rimuovi quando colleghi il vero store)
 		teams = [];
 		categories = Object.keys(categoryConfigs);
 	});
 
-	export function getCategoryConfig(category: string): CategoryConfig {
+	function getCategoryConfig(category: string): CategoryConfig {
 		return categoryConfigs[category] || {
 			name: category,
 			maxScore: 15,
@@ -74,7 +65,6 @@
 		};
 	}
 
-	// Funzione reattiva per calcolare le categorie dai team
 	$: categories = [...new Set(teams.map(t => t.category))];
 </script>
 
@@ -134,7 +124,7 @@
 				</div>
 			{:else}
 				{#each categories as category}
-					{#let config = getCategoryConfig(category)}
+					{@const config = getCategoryConfig(category)}
 					<div class="mb-4">
 						<div class="card border-primary">
 							<div class="card-header bg-light d-flex justify-content-between align-items-center">
