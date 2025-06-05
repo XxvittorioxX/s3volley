@@ -1,5 +1,11 @@
 <script lang="ts">
-	import type { Team } from '$lib/stores/teams';
+	// Definisci l'interfaccia Team direttamente qui per ora
+	interface Team {
+		id: string;
+		teamName: string;
+		coachName: string;
+		category: string;
+	}
 
 	interface CategoryConfig {
 		name: string;
@@ -45,8 +51,17 @@
 		}
 	};
 
-	export let teams: Team[] = [];
-	export let categories: string[] = [];
+	// Dati mock per testare la pagina
+	let teams: Team[] = [
+		{ id: '1', teamName: 'Lions S1', coachName: 'Mario Rossi', category: 'S1' },
+		{ id: '2', teamName: 'Eagles S1', coachName: 'Luigi Verdi', category: 'S1' },
+		{ id: '3', teamName: 'Tigers S1', coachName: 'Paolo Bianchi', category: 'S1' },
+		{ id: '4', teamName: 'Sharks S2', coachName: 'Anna Neri', category: 'S2' },
+		{ id: '5', teamName: 'Dragons S2', coachName: 'Sofia Blu', category: 'S2' }
+	];
+
+	// Ricava le categorie dai teams esistenti
+	$: categories = [...new Set(teams.map(t => t.category))];
 
 	export function getCategoryConfig(category: string): CategoryConfig {
 		return categoryConfigs[category] || {
@@ -61,6 +76,7 @@
 </script>
 
 <svelte:head>
+	<title>Torneo Minivolley - Regole e Squadre</title>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 </svelte:head>
 
