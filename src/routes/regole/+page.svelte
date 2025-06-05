@@ -14,24 +14,27 @@
 		isTimeBased: boolean;
 		description: string;
 		ageRange: string;
+		advantage: number;
 	}
 
 	const categoryConfigs: Record<string, CategoryConfig> = {
 		S1: {
 			name: 'Minivolley S1',
-			maxScore: 10,
+			maxScore: 8,
 			playTime: 8,
-			isTimeBased: true,
-			description: 'Livello base - Set a 8 punti(vantaggio 2)',
-			ageRange: '6-8 anni'
+			isTimeBased: false,
+			description: 'Livello base - Set a 8 punti (vantaggio 2)',
+			ageRange: '6-8 anni',
+			advantage: 2
 		},
 		S2: {
 			name: 'Minivolley S2',
-			maxScore: 12,
+			maxScore: 10,
 			playTime: 10,
-			isTimeBased: true,
-			description: 'Livello intermedio - Set a 10 punti(vantaggio 2)',
-			ageRange: '8-10 anni'
+			isTimeBased: false,
+			description: 'Livello intermedio - Set a 10 punti (vantaggio 1)',
+			ageRange: '8-10 anni',
+			advantage: 1
 		},
 		S3: {
 			name: 'Minivolley S3',
@@ -39,7 +42,8 @@
 			playTime: 12,
 			isTimeBased: false,
 			description: 'Livello avanzato - Set a 15 punti (vantaggio 2)',
-			ageRange: '10-11 anni'
+			ageRange: '10-11 anni',
+			advantage: 2
 		},
 		Under12: {
 			name: 'Under 12',
@@ -47,7 +51,8 @@
 			playTime: 15,
 			isTimeBased: false,
 			description: 'Volley giovanile - Set a 21 punti',
-			ageRange: '11-12 anni'
+			ageRange: '11-12 anni',
+			advantage: 2
 		},
 		Seniores: {
 			name: 'Seniores',
@@ -55,7 +60,8 @@
 			playTime: 15,
 			isTimeBased: false,
 			description: 'Volley esperto - Set a 25 punti',
-			ageRange: '60-65 anni'
+			ageRange: '60-65 anni',
+			advantage: 2
 		}
 	};
 
@@ -69,7 +75,8 @@
 			playTime: 10,
 			isTimeBased: false,
 			description: 'Configurazione standard',
-			ageRange: 'N/A'
+			ageRange: 'N/A',
+			advantage: 2
 		};
 	}
 
@@ -96,7 +103,7 @@
 						<th>Categoria</th>
 						<th>Età</th>
 						<th>Tipo</th>
-						<th>Punteggio/Tempo</th>
+						<th>Punteggio</th>
 						<th>Descrizione</th>
 					</tr>
 				</thead>
@@ -112,22 +119,18 @@
 							</td>
 							<td>
 								<strong>
-									{#if config.isTimeBased}
-										{config.playTime} minuti
-									{:else}
-										Set a {config.maxScore} punti
-									{/if}
+									Set a {config.maxScore} punti (vantaggio {config.advantage})
 								</strong>
 							</td>
 							<td><small class="text-muted">{config.description}</small></td>
 						</tr>
 					{/each}
 				</tbody>
-
 			</table>
 		</div>
 	</div>
 </div>
+
 <style>
 	.bg-outline-primary {
 		color: #0d6efd;

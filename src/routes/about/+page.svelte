@@ -14,6 +14,7 @@
 		group?: string;
 		phase: 'group' | 'knockout';
 		category?: string;
+		field?: number;  // Campo di gioco
 	}
 
 	interface GroupStanding {
@@ -32,10 +33,10 @@
 	}
 
 	const categoryRules: { [key: string]: CategoryRules } = {
-		'S1': { maxScore: 8, minAdvantage: 1, description: 'Set a 15 punti' },
-		'S2': { maxScore: 10, minAdvantage: 1, description: 'Set a 15 punti' },
+		'S1': { maxScore: 8, minAdvantage: 2, description: 'Set a 8 punti (vantaggio 2)' },
+		'S2': { maxScore: 10, minAdvantage: 1, description: 'Set a 10 punti (vantaggio 1)' },
 		'S3': { maxScore: 15, minAdvantage: 2, description: 'Set a 15 punti (vantaggio 2)' },
-		'Under12': { maxScore: 15, minAdvantage: 2, description: 'Set a 15 punti (vantaggio 2)' },
+		'Under12': { maxScore: 21, minAdvantage: 2, description: 'Set a 21 punti (vantaggio 2)' },
 		'Seniores': { maxScore: 25, minAdvantage: 2, description: 'Set a 25 punti (vantaggio 2)' }
 	};
 
@@ -50,6 +51,8 @@
 	let categories: string[] = [];
 	let groupsByCategory: { [category: string]: string[] } = {};
 	let tempScores: { [key: string]: { score1: number, score2: number } } = {};
+
+	const fields = Array.from({ length: 20 }, (_, i) => i + 1); // Campi da 1 a 20
 
 	onMount(() => {
 		teams = get(registeredTeams);
@@ -70,6 +73,11 @@
 		const rules = getCategoryRules(category);
 		const maxScore = Math.max(score1, score2);
 		const scoreDiff = Math.abs(score1 - score2);
+
+		// Controllo che il punteggio non superi il massimo consentito per la categoria
+		if (score1 > rules.maxScore || score2 > rules.maxScore) {
+			return false;
+		}
 
 		if (maxScore < rules.maxScore) return false;
 		if (maxScore === rules.maxScore) return scoreDiff >= rules.minAdvantage;
@@ -130,7 +138,8 @@
 							score2: undefined,
 							group: groupName,
 							phase: 'group',
-							category: category
+							category: category,
+							field: undefined
 						});
 						initTempScore(matchId);
 					}
@@ -195,7 +204,7 @@
 
 		if (!isValidScore(score1, score2, match.category)) {
 			const rules = getCategoryRules(match.category);
-			alert(`Punteggio non valido per la categoria ${match.category}!\n${rules.description}\nIl punteggio deve raggiungere almeno ${rules.maxScore} punti con un vantaggio minimo di ${rules.minAdvantage} punti.`);
+			alert(`Punteggio non valido per la categoria ${match.category}!\n${rules.description}\nIl punteggio non può superare ${rules.maxScore} punti e deve avere un vantaggio minimo di ${rules.minAdvantage} punti.`);
 			return;
 		}
 
@@ -206,6 +215,22 @@
 		recalculateGroupStanding(match.group);
 		groupStandings = { ...groupStandings };
 		groupMatches = [...groupMatches];
+	}
+
+	function setFieldForMatch(matchId: string, field: number, isKnockout: boolean = false) {
+		if (isKnockout) {
+			const match = knockoutMatches.find(m => m.id === matchId);
+			if (match) {
+				match.field = field;
+				knockoutMatches = [...knockoutMatches];
+			}
+		} else {
+			const match = groupMatches.find(m => m.id === matchId);
+			if (match) {
+				match.field = field;
+				groupMatches = [...groupMatches];
+			}
+		}
 	}
 
 	function resetMatchResult(matchId: string) {
@@ -272,7 +297,8 @@
 					w: null,
 					round,
 					phase: 'knockout',
-					category
+					category,
+					field: undefined
 				});
 			}
 
@@ -289,7 +315,8 @@
 						w: null,
 						round,
 						phase: 'knockout',
-						category
+						category,
+						field: undefined
 					});
 				}
 			}
@@ -307,7 +334,8 @@
 						w: null, 
 						round, 
 						phase: 'knockout',
-						category
+						category,
+						field: undefined
 					});
 				}
 				knockoutMatches = [...knockoutMatches, ...next];
@@ -435,7 +463,7 @@
 											<div class="card mb-2">
 												<div class="card-body p-3">
 													<div class="row align-items-center">
-														<div class="col-3 text-end fw-semibold">{match.t1?.teamName}</div>
+														<div class="col-2 text-end fw-semibold">{match.t1?.teamName}</div>
 														<div class="col-6 text-center">
 															{#if match.score1 !== undefined && match.score2 !== undefined}
 																<span class="badge bg-primary fs-6">{match.score1} - {match.score2}</span>
@@ -443,10 +471,10 @@
 															{:else}
 																<div class="d-flex justify-content-center align-items-center gap-2">
 																	<input type="number" class="form-control form-control-sm text-center" 
-																		bind:value={tempScores[match.id].score1} min="0" max="99" style="width: 60px;" placeholder="0">
+																		bind:value={tempScores[match.id].score1} min="0" max={getCategoryRules(match.category || '').maxScore} style="width: 60px;" placeholder="0">
 																	<span>-</span>
 																	<input type="number" class="form-control form-control-sm text-center" 
-																		bind:value={tempScores[match.id].score2} min="0" max="99" style="width: 60px;" placeholder="0">
+																		bind:value={tempScores[match.id].score2} min="0" max={getCategoryRules(match.category || '').maxScore} style="width: 60px;" placeholder="0">
 																</div>
 																<button class="btn btn-sm btn-success mt-2"
 																	disabled={tempScores[match.id].score1 === undefined || tempScores[match.id].score2 === undefined}
@@ -458,7 +486,24 @@
 																</div>
 															{/if}
 														</div>
-														<div class="col-3 fw-semibold">{match.t2?.teamName}</div>
+														<div class="col-2 fw-semibold">{match.t2?.teamName}</div>
+														<div class="col-2">
+															<!-- Form selezione campo -->
+															<div class="field-selector">
+																<label class="form-label text-muted small mb-1">Campo:</label>
+																<select class="form-select form-select-sm" 
+																	bind:value={match.field}
+																	on:change={() => setFieldForMatch(match.id, match.field || 1)}>
+																	<option value={undefined}>Seleziona campo</option>
+																	{#each fields as field}
+																		<option value={field}>Campo {field}</option>
+																	{/each}
+																</select>
+																{#if match.field}
+																	<small class="text-success">⚽ Campo {match.field}</small>
+																{/if}
+															</div>
+														</div>
 													</div>
 												</div>
 											</div>
@@ -519,7 +564,7 @@
 
 					<div class="d-flex flex-wrap gap-4 justify-content-center overflow-auto">
 						{#each knockoutRoundsByCategory[category] || [] as round}
-							<div class="border rounded p-3" style="min-width: 280px; max-width: 280px;">
+							<div class="border rounded p-3" style="min-width: 300px; max-width: 300px;">
 								<h4 class="text-center mb-3">
 									{round === Math.max(...(knockoutRoundsByCategory[category] || [])) ? '🏆 FINALE' : 
 									 round === Math.max(...(knockoutRoundsByCategory[category] || [])) - 1 ? '🥇 SEMIFINALE' :
@@ -536,6 +581,22 @@
 												<div class="p-2 rounded border {match.w === match.t2 ? 'bg-success text-white' : 'bg-light'}">
 													<strong>{match.t2?.teamName || 'TBD'}</strong>
 												</div>
+											</div>
+
+											<!-- Form selezione campo per eliminazione diretta -->
+											<div class="field-selector mt-2">
+												<label class="form-label text-muted small mb-1">Campo:</label>
+												<select class="form-select form-select-sm" 
+													bind:value={match.field}
+													on:change={() => setFieldForMatch(match.id, match.field || 1, true)}>
+													<option value={undefined}>Seleziona campo</option>
+													{#each fields as field}
+														<option value={field}>Campo {field}</option>
+													{/each}
+												</select>
+												{#if match.field}
+													<small class="text-success d-block">⚽ Campo {match.field}</small>
+												{/if}
 											</div>
 
 											{#if match.t1 && match.t2 && !match.w}
@@ -612,12 +673,4 @@
 	.card { box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e9ecef; }
 	.card-header { background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; font-weight: 600; }
 	.badge { font-size: 0.9em; }
-	.table-success { background-color: #d1edff !important; }
-	.btn-sm { font-size: 0.8rem; padding: 0.25rem 0.5rem; }
-	.overflow-auto { max-height: 80vh; }
-	.text-primary { color: #0d6efd !important; }
-	.text-success { color: #198754 !important; }
-	.bg-success { background-color: #198754 !important; }
-	.border-success { border-color: #198754 !important; }
-	.alert-success { background-color: #d1edff; border-color: #0d6efd; color: #0a58ca; }
-</style>
+	.table-success
