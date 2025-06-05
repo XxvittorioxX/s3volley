@@ -35,6 +35,13 @@
 						{/if}
 					</a>
 				</li>
+					<li class="nav-item" aria-current={page.url.pathname.startsWith('/regole') ? 'page' : undefined}>
+					<a class="nav-link position-relative" href="/regole">Regolamento
+						{#if page.url.pathname.startsWith('/regole')}
+							<span class="active-indicator"></span>
+						{/if}
+					</a>
+				</li>
 			</ul>
 		</nav>
 
