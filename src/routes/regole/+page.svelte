@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { Team } from '$lib/stores/teams';
+
+	interface Team {
+		teamName: string;
+		coachName: string;
+		category: string;
+	}
 
 	interface CategoryConfig {
 		name: string;
@@ -11,7 +16,7 @@
 		ageRange: string;
 	}
 
-	export const categoryConfigs: Record<string, CategoryConfig> = {
+	const categoryConfigs: Record<string, CategoryConfig> = {
 		S1: {
 			name: 'Minivolley S1',
 			maxScore: 10,
@@ -47,12 +52,7 @@
 	};
 
 	let teams: Team[] = [];
-	let categories: string[] = [];
-
-	onMount(() => {
-		teams = [];
-		categories = Object.keys(categoryConfigs);
-	});
+	let categories: string[] = Object.keys(categoryConfigs);
 
 	function getCategoryConfig(category: string): CategoryConfig {
 		return categoryConfigs[category] || {
@@ -65,7 +65,9 @@
 		};
 	}
 
-	$: categories = [...new Set(teams.map(t => t.category))];
+	function getTeamsByCategory(category: string): Team[] {
+		return teams.filter(t => t.category === category);
+	}
 </script>
 
 <svelte:head>
@@ -101,92 +103,23 @@
 								</span>
 							</td>
 							<td>
-								<strong>{config.isTimeBased ? `${config.playTime} minuti` : `Set a ${config.maxScore} punti`}</strong>
+								<strong>
+									{#if config.isTimeBased}
+										{config.playTime} minuti
+									{:else}
+										Set a {config.maxScore} punti
+									{/if}
+								</strong>
 							</td>
 							<td><small class="text-muted">{config.description}</small></td>
 						</tr>
 					{/each}
 				</tbody>
+
 			</table>
 		</div>
 	</div>
-
-	<!-- Squadre -->
-	<div class="card shadow-sm">
-		<div class="card-header bg-success text-white">
-			<h3 class="mb-0">👥 Squadre Registrate</h3>
-		</div>
-		<div class="card-body">
-			{#if teams.length === 0}
-				<div class="alert alert-warning text-center">
-					<h5>⚠️ Nessuna squadra registrata</h5>
-					<p class="mb-0">Registra le squadre per iniziare il torneo</p>
-				</div>
-			{:else}
-				{#each categories as category}
-					{@const config = getCategoryConfig(category)}
-					<div class="mb-4">
-						<div class="card border-primary">
-							<div class="card-header bg-light d-flex justify-content-between align-items-center">
-								<div>
-									<h5 class="mb-0 text-primary">{config.name}</h5>
-									<small class="text-muted">{config.ageRange} • {config.description}</small>
-								</div>
-								<span class="badge bg-primary fs-6">
-									{teams.filter(t => t.category === category).length} squadre
-								</span>
-							</div>
-							<div class="card-body">
-								{#if teams.filter(t => t.category === category).length > 0}
-									<div class="row">
-										{#each teams.filter(t => t.category === category) as team, i}
-											<div class="col-md-6 col-lg-4 mb-3">
-												<div class="card h-100 border-secondary">
-													<div class="card-body p-3">
-														<h6 class="card-title text-dark mb-1">🏐 {team.teamName}</h6>
-														<small class="text-muted">👨‍🏫 {team.coachName}</small>
-														<div class="mt-2">
-															<span class="badge bg-outline-primary">#{i + 1}</span>
-														</div>
-													</div>
-												</div>
-											</div>
-										{/each}
-									</div>
-								{:else}
-									<p class="text-muted text-center mb-0">Nessuna squadra per questa categoria</p>
-								{/if}
-							</div>
-						</div>
-					</div>
-
-					{#if teams.filter(t => t.category === category).length < 3}
-						<div class="alert alert-warning">
-							<strong>⚠️ {config.name}:</strong> Solo {teams.filter(t => t.category === category).length} squadra/e. Servono almeno 3 squadre.
-						</div>
-					{/if}
-				{/each}
-
-				<!-- Totali -->
-				<div class="alert alert-info text-center mt-4">
-					<div class="row">
-						<div class="col">
-							<h5>{teams.length}</h5><small>Totale Squadre</small>
-						</div>
-						<div class="col">
-							<h5>{categories.length}</h5><small>Categorie Attive</small>
-						</div>
-						<div class="col">
-							<h5>{categories.filter(cat => teams.filter(t => t.category === cat).length >= 3).length}</h5>
-							<small>Categorie Pronte</small>
-						</div>
-					</div>
-				</div>
-			{/if}
-		</div>
-	</div>
 </div>
-
 <style>
 	.bg-outline-primary {
 		color: #0d6efd;

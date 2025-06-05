@@ -158,11 +158,10 @@
 									on:blur={() => validateField('category', category)}
 								>
 									<option value="">Seleziona una categoria</option>
-									<option value="Under 10">Under 10</option>
+									<option value="S1">S1</option>
+									<option value="S2">S2</option>
+									<option value="S3">S3</option>
 									<option value="Under 12">Under 12</option>
-									<option value="Under 14">Under 14</option>
-									<option value="Under 16">Under 16</option>
-									<option value="Under 18">Under 18</option>
 									<option value="Seniores">Seniores</option>
 								</select>
 								{#if errors.category}
