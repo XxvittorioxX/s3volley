@@ -56,7 +56,7 @@
 	onMount(() => {
 		// Carica i dati dei team se disponibili
 		 teams = $teamsStore || [];
-		 categories = [...new Set(teams.map(t => t.category))];
+		categories = [...new Set(teams.map(t => t.category))];
 		
 		// Per ora, dati di esempio (rimuovi quando colleghi il vero store)
 		teams = [];
