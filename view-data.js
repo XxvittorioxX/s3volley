@@ -1,5 +1,5 @@
-import { db } from './db.js';
-import { users, posts } from './schema.js';
+import { db } from '../../db.js';
+import { users, posts } from '../../schema.js';
 import { eq } from 'drizzle-orm';
 
 async function viewAllData() {

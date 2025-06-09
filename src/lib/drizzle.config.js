@@ -7,7 +7,7 @@ export default defineConfig({
   dbCredentials: {
     host: 'localhost',
     user: 'root',
-    password: 'password',
+    password: 'itis123',
     database: 'test_db',
   },
 });

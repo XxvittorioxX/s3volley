@@ -5,7 +5,7 @@ import * as schema from './schema.js';
 const connection = mysql.createPool({
   host: 'localhost',
   user: 'root',
-  password: 'password',
+  password: 'itis123',
   database: 'test_db',
   waitForConnections: true,
   connectionLimit: 10,
