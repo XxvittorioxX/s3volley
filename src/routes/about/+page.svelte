@@ -131,7 +131,7 @@
 				
 				groups[groupName] = groupTeams;
 
-				// Generate all possible matches (round-robin)
+				// Generate all possible matches 
 				for (let i = 0; i < groupTeams.length; i++) {
 					for (let j = i + 1; j < groupTeams.length; j++) {
 						const matchId = `${groupName}-${i}-${j}`;
@@ -443,7 +443,7 @@
 </script>
 
 <svelte:head>
-	<title> Torneo Volley S3 - Sistema Avanzato</title>
+	<title> Torneo Volley S3 </title>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 </svelte:head>
 

@@ -18,7 +18,7 @@ export const posts = mysqlTable('posts', {
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`)
 });
 
-// Tabella teams (versione finale)
+// Tabella teams 
 export const teams = mysqlTable('teams', {
   id: int('id').primaryKey().autoincrement(),
   teamName: varchar('team_name', { length: 255 }).notNull(),
