@@ -32,7 +32,7 @@ export async function POST({ request }) {
     const existingTeam = await db
       .select()
       .from(teams)
-      .where(eq(teams.teamName, teamName))
+      .where(eq(teams.team_name, teamName)) // Cambiato in team_name
       .limit(1);
 
     if (existingTeam.length > 0) {
@@ -44,9 +44,9 @@ export async function POST({ request }) {
 
     // Inserisci nel database
     await db.insert(teams).values({
-      teamName,
+      team_name: teamName,    // Cambiato in team_name
       category,
-      coachName,
+      coach_name: coachName,  // Cambiato in coach_name
       email,
       phone
     });
