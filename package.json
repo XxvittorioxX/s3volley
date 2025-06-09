@@ -39,4 +39,5 @@
     "migrate": "drizzle-kit migrate",
     "studio": "drizzle-kit studio"
   }
-}
+}     
+ 
