@@ -14,3 +14,13 @@ export const posts = mysqlTable('posts', {
   userId: int('user_id').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+export const teams = mysqlTable('teams', {
+  id: int('id').primaryKey().autoincrement(),
+  teamName: varchar('team_name', { length: 100 }).notNull(),
+  category: varchar('category', { length: 50 }).notNull(),
+  coachName: varchar('coach_name', { length: 100 }).notNull(),
+  email: varchar('email', { length: 100 }).notNull(),
+  phone: varchar('phone', { length: 20 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
