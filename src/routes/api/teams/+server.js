@@ -4,6 +4,7 @@ import { teams } from '$lib/schema.js';
 import { eq } from 'drizzle-orm';
 
 // GET - Ottieni tutte le squadre
+/** @type {import('./$types').RequestHandler} */
 export async function GET() {
   try {
     const allTeams = await db.select().from(teams);
@@ -15,6 +16,7 @@ export async function GET() {
 }
 
 // POST - Registra nuova squadra
+/** @type {import('./$types').RequestHandler} */
 export async function POST({ request }) {
   try {
     const data = await request.json();
@@ -24,7 +26,7 @@ export async function POST({ request }) {
     if (!teamName || !category || !coachName || !email || !phone) {
       return json({ 
         success: false, 
-        message: 'Tutti i campi sono obbligatori' 
+        message: 'Tutti i campi sono obbligatori'
       }, { status: 400 });
     }
 
@@ -32,35 +34,35 @@ export async function POST({ request }) {
     const existingTeam = await db
       .select()
       .from(teams)
-      .where(eq(teams.team_name, teamName)) // Cambiato in team_name
+      .where(eq(teams.teamName, teamName)) // Usa teamName (camelCase)
       .limit(1);
 
     if (existingTeam.length > 0) {
       return json({ 
         success: false, 
-        message: 'Una squadra con questo nome è già registrata' 
+        message: 'Una squadra con questo nome è già registrata'
       }, { status: 400 });
     }
 
     // Inserisci nel database
     await db.insert(teams).values({
-      team_name: teamName,    // Cambiato in team_name
+      teamName: teamName,    // Usa teamName (camelCase)
       category,
-      coach_name: coachName,  // Cambiato in coach_name
+      coachName: coachName,  // Usa coachName (camelCase)
       email,
       phone
     });
 
-    return json({ 
-      success: true, 
-      message: 'Squadra registrata con successo!' 
+    return json({
+      success: true,
+      message: 'Squadra registrata con successo!'
     });
 
   } catch (error) {
     console.error('Errore nella registrazione:', error);
     return json({ 
       success: false, 
-      message: 'Errore interno del server' 
+      message: 'Errore interno del server'
     }, { status: 500 });
   }
 }
