@@ -32,12 +32,3 @@
 		"mysql2": "^3.14.1"
 	}
 }
-{
-  "type": "module",
-  "scripts": {
-    "generate": "drizzle-kit generate",
-    "migrate": "drizzle-kit migrate",
-    "studio": "drizzle-kit studio"
-  }
-}     
- 
