@@ -1,4 +1,5 @@
-import { mysqlTable, int, varchar, timestamp, sql } from 'drizzle-orm/mysql-core';
+import { mysqlTable, int, varchar, timestamp } from 'drizzle-orm/mysql-core';
+import { sql } from 'drizzle-orm';
 
 // Tabella utenti
 export const users = mysqlTable('users', {
