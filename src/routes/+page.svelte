@@ -250,21 +250,21 @@
 
 						<div class="d-grid gap-2 mt-4">
 					<button 
-	type="submit" 
-	class="btn btn-lg {isFormValid && !isLoading ? 'btn-success' : 'btn-secondary'}"
-	disabled={!isFormValid || isLoading}
->
-	{#if isLoading}
-		<i class="fas fa-spinner fa-spin me-2"></i>
-		Registrazione in corso...
-	{:else if isFormValid}
-		<i class="fas fa-check-circle me-2"></i>
-		Registra Squadra
-	{:else}
-		<i class="fas fa-exclamation-triangle me-2"></i>
-		Compila tutti i campi obbligatori
-	{/if}
-</button>
+						type="submit" 
+						class="btn btn-lg {isFormValid && !isLoading ? 'btn-success' : 'btn-secondary'}"
+						disabled={!isFormValid || isLoading}
+						>
+						{#if isLoading}
+						<i class="fas fa-spinner fa-spin me-2"></i>
+						Registrazione in corso...
+						{:else if isFormValid}
+						<i class="fas fa-check-circle me-2"></i>
+							Registra Squadra
+						{:else}
+							<i class="fas fa-exclamation-triangle me-2"></i>
+						Compila tutti i campi obbligatori
+						{/if}
+						</button>
 						</div>
 
 						{#if !isFormValid}
