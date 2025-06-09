@@ -1,13 +1,13 @@
 import { defineConfig } from 'drizzle-kit';
 
 export default defineConfig({
-  schema: './schema.js',
+  schema: './schema.js',  // Questo dovrebbe essere corretto se schema.js è nella root
   out: './drizzle',
   dialect: 'mysql',
   dbCredentials: {
     host: 'localhost',
-    user: 'root',           // Cambia con il tuo username
-    password: 'password',   // Cambia con la tua password
-    database: 'test_db',    // Cambia con il nome del tuo database
+    user: 'root',
+    password: 'password',
+    database: 'test_db',
   },
 });
