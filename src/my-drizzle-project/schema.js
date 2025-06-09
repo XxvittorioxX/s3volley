@@ -24,3 +24,13 @@ export const teams = mysqlTable('teams', {
   phone: varchar('phone', { length: 20 }).notNull(),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+export const teamss = mysqlTable('teams', {
+  id: int('id').primaryKey().autoincrement(),
+  teamName: varchar('team_name', { length: 255 }).notNull(),
+  category: varchar('category', { length: 50 }).notNull(),
+  coachName: varchar('coach_name', { length: 255 }).notNull(),
+  email: varchar('email', { length: 255 }).notNull(),
+  phone: varchar('phone', { length: 50 }).notNull(),
+  createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
