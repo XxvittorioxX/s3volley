@@ -1,14 +1,15 @@
 <script lang="ts">
-	import { registeredTeams } from '$lib/stores/teams';
-
-	// Dati del form
+	// Dati del form (uguale a prima)
 	let teamName = '';
 	let category = '';
 	let coachName = '';
 	let email = '';
 	let phone = '';
 
-	// Stato di validazione
+	// AGGIUNGI QUESTA VARIABILE
+	let isLoading = false;
+
+	// Stato di validazione (uguale a prima)
 	let errors = {
 		teamName: '',
 		category: '',
@@ -17,7 +18,7 @@
 		phone: ''
 	};
 
-	// Funzione per validare un singolo campo
+	// Tutte le funzioni di validazione restano UGUALI
 	function validateField(field: string, value: string) {
 		switch (field) {
 			case 'teamName':
@@ -50,7 +51,6 @@
 		}
 	}
 
-	// Funzione per validare tutti i campi
 	function validateAllFields() {
 		validateField('teamName', teamName);
 		validateField('category', category);
@@ -59,7 +59,6 @@
 		validateField('phone', phone);
 	}
 
-	// Controlla se il form è valido
 	$: isFormValid = teamName.trim() !== '' && 
 					 category.trim() !== '' && 
 					 coachName.trim() !== '' && 
@@ -67,8 +66,8 @@
 					 phone.trim() !== '' &&
 					 Object.values(errors).every(error => error === '');
 
-	// Funzione per gestire l'invio del form
-	function handleSubmit() {
+	// SOSTITUISCI QUESTA FUNZIONE
+	async function handleSubmit() {
 		validateAllFields();
 		
 		if (!isFormValid) {
@@ -76,39 +75,50 @@
 			return;
 		}
 
-		// Controlla se la squadra esiste già
-		if ($registeredTeams.some(team => team.teamName.toLowerCase() === teamName.toLowerCase())) {
-			alert('Una squadra con questo nome è già registrata.');
-			return;
+		isLoading = true;
+
+		try {
+			const response = await fetch('/api/teams', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					teamName: teamName.trim(),
+					category: category.trim(),
+					coachName: coachName.trim(),
+					email: email.trim(),
+					phone: phone.trim()
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.success) {
+				// Reset del form
+				teamName = '';
+				category = '';
+				coachName = '';
+				email = '';
+				phone = '';
+				errors = {
+					teamName: '',
+					category: '',
+					coachName: '',
+					email: '',
+					phone: ''
+				};
+
+				alert('Squadra registrata con successo nel database!');
+			} else {
+				alert(`Errore: ${result.message}`);
+			}
+		} catch (error) {
+			console.error('Errore di rete:', error);
+			alert('Errore di connessione. Riprova più tardi.');
+		} finally {
+			isLoading = false;
 		}
-
-		// Aggiungi la squadra al store
-		const newTeam = {
-			id: Date.now().toString(),
-			teamName: teamName.trim(),
-			category: category.trim(),
-			coachName: coachName.trim(),
-			email: email.trim(),
-			phone: phone.trim()
-		};
-
-		registeredTeams.update(teams => [...teams, newTeam]);
-
-		// Reset del form
-		teamName = '';
-		category = '';
-		coachName = '';
-		email = '';
-		phone = '';
-		errors = {
-			teamName: '',
-			category: '',
-			coachName: '',
-			email: '',
-			phone: ''
-		};
-
-		alert('Squadra registrata con successo!');
 	}
 </script>
 

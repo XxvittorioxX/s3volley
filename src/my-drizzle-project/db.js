@@ -1,11 +1,13 @@
-import { drizzle } from "drizzle-orm/mysql2";
-import mysql from "mysql2/promise";
+import { drizzle } from 'drizzle-orm/mysql2';
+import mysql from 'mysql2/promise';
+import * as schema from './schema.js';
 
-const connection = await mysql.createConnection({
-  host: "localhost",
-  user: "root",           // Cambia con il tuo username
-  password: "password",   // Cambia con la tua password
-  database: "test_db"     // Cambia con il nome del tuo database
+const connection = mysql.createPool({
+  host: 'localhost',
+  user: 'tuo_utente',      // ← Cambia qui
+  password: 'tua_password', // ← Cambia qui
+  database: 'tuo_database', // ← Cambia qui
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
-
-export const db = drizzle(connection);
