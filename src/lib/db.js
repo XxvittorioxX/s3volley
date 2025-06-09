@@ -4,12 +4,15 @@ import * as schema from './schema.js';
 
 const connection = mysql.createPool({
   host: 'localhost',
-  user: 'root',           
-  password: 'itis123',   
-  database: 'test_db',    
+  user: 'root',
+  password: 'password',
+  database: 'test_db',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
 });
 
-export const db = drizzle(connection, { schema });
+export const db = drizzle(connection, { 
+  schema, 
+  mode: 'default' 
+});
