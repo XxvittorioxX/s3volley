@@ -88,41 +88,54 @@
 <svelte:head>
 	<title>Regole del Torneo</title>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 </svelte:head>
 
-<div class="container my-4">
+<div class="container my-5">
 	<!-- Regole -->
-	<div class="card mb-4 shadow-sm">
-		<div class="card-header bg-primary text-white">
-			<h3 class="mb-0">📋 Regole delle Categorie</h3>
+	<div class="card shadow-lg border-0">
+		<div class="card-header bg-primary text-white d-flex align-items-center">
+			<i class="bi bi-clipboard-check-fill me-2 fs-4"></i>
+			<h3 class="mb-0">Regole delle Categorie</h3>
 		</div>
 		<div class="table-responsive">
-			<table class="table table-striped mb-0">
-				<thead class="table-dark">
+			<table class="table table-hover align-middle mb-0">
+				<thead class="table-light text-center">
 					<tr>
 						<th>Categoria</th>
-						<th>Età</th>
-						<th>Tipo</th>
+						<th>Fascia Età</th>
+						<th>Modalità</th>
 						<th>Punteggio</th>
 						<th>Descrizione</th>
 					</tr>
 				</thead>
-				<tbody>
+				<tbody class="text-center">
 					{#each Object.entries(categoryConfigs) as [key, config]}
 						<tr>
-							<td><strong class="text-primary">{key}</strong></td>
-							<td><span class="badge bg-secondary">{config.ageRange}</span></td>
 							<td>
-								<span class="badge {config.isTimeBased ? 'bg-info' : 'bg-success'}">
-									{config.isTimeBased ? '⏱️ A Tempo' : '🏆 A Punti'}
+								<span class="fw-semibold text-primary">{key}</span><br>
+								<small class="text-muted">{config.name}</small>
+							</td>
+							<td>
+								<span class="badge rounded-pill bg-secondary">
+									<i class="bi bi-people-fill me-1"></i>{config.ageRange}
 								</span>
 							</td>
 							<td>
-								<strong>
-									Set a {config.maxScore} punti (vantaggio {config.advantage})
-								</strong>
+								<span class="badge rounded-pill {config.isTimeBased ? 'bg-info' : 'bg-success'}">
+									{config.isTimeBased
+										? '⏱️ A Tempo'
+										: '🏐 A Punti'}
+								</span>
 							</td>
-							<td><small class="text-muted">{config.description}</small></td>
+							<td>
+								<span class="fw-bold text-dark">
+									{config.maxScore} pt <small class="text-muted">(adv. {config.advantage})</small>
+								</span>
+							</td>
+							<td class="text-start">
+								<small class="text-muted">{config.description}</small>
+							</td>
 						</tr>
 					{/each}
 				</tbody>

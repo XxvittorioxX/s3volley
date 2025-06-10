@@ -48,7 +48,7 @@
 	// Funzione per caricare i dati del torneo salvati
 	function loadSavedTournamentData() {
 		// Questa funzione dovrebbe caricare i dati reali dal tuo sistema di storage
-		// Per ora creo dati di esempio per dimostrare come funziona
+		// Per ora creo dati di esempio per dimostrware come funziona
 		
 		// Esempio di struttura dati che dovresti avere dal torneo principale
 		if (teams.length > 0) {
