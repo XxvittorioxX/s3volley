@@ -130,11 +130,3 @@
 		</div>
 	</div>
 </div>
-
-<style>
-	.bg-outline-primary {
-		color: #0d6efd;
-		border: 1px solid #0d6efd;
-		background-color: transparent;
-	}
-</style>
