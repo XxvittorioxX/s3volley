@@ -28,9 +28,9 @@
 						{/if}
 					</a>
 				</li>
-				<li class="nav-item" aria-current={page.url.pathname.startsWith('/registrazioni') ? 'page' : undefined}>
-					<a class="nav-link position-relative" href="/registrazioni">Classifiche Gironi
-						{#if page.url.pathname.startsWith('/registrazioni')}
+				<li class="nav-item" aria-current={page.url.pathname.startsWith('/classifiche_gironi') ? 'page' : undefined}>
+					<a class="nav-link position-relative" href="/classifiche_gironi">Classifiche Gironi
+						{#if page.url.pathname.startsWith('/classifiche_gironi')}
 							<span class="active-indicator"></span>
 						{/if}
 					</a>
