@@ -29,7 +29,7 @@
 					</a>
 				</li>
 				<li class="nav-item" aria-current={page.url.pathname.startsWith('/registrazioni') ? 'page' : undefined}>
-					<a class="nav-link position-relative" href="/registrazioni">Visualizza Squadre
+					<a class="nav-link position-relative" href="/registrazioni">Classifiche Gironi
 						{#if page.url.pathname.startsWith('/registrazioni')}
 							<span class="active-indicator"></span>
 						{/if}

@@ -659,59 +659,6 @@
 						<p class="mb-0">Le prime 2 squadre di ogni girone si qualificano per l'eliminazione diretta.</p>
 					</div>
 					<button class="btn btn-success btn-lg" on:click={startKnockoutPhase}>
-						🏆 Inizia Eliminazione Diretta
-					</button>
-				</div>
-			{/if}
-		</div>
-
-		<!-- GROUP STANDINGS SECTION -->
-		<div class="mb-4">
-			<h3>📊 Classifiche Gironi</h3>
-			{#each categories as category}
-				<div class="mb-4">
-					<h4 class="text-primary">{category}</h4>
-					{#each groupsByCategory[category] || [] as groupName}
-						<div class="card mb-3">
-							<div class="card-header">
-								<h6 class="mb-0">{groupName.split('_').slice(1).join(' ')}</h6>
-							</div>
-							<div class="card-body p-0">
-								<table class="table table-sm mb-0">
-									<thead class="table-light">
-										<tr>
-											<th>Pos</th>
-											<th>Squadra</th>
-											<th>G</th>
-											<th>V</th>
-											<th>P</th>
-											<th>S</th>
-											<th>Punti</th>
-										</tr>
-									</thead>
-									<tbody>
-										{#each groupStandings[groupName] || [] as standing, index}
-											<tr class={index < 2 ? 'table-success' : ''}>
-												<td><strong>{index + 1}</strong></td>
-												<td><strong>{standing.team.teamName}</strong></td>
-												<td>{standing.played}</td>
-												<td>{standing.won}</td>
-												<td>{standing.lost}</td>
-												<td>{standing.drawn}</td>
-												<td><strong>{standing.points}</strong></td>
-											</tr>
-										{/each}
-									</tbody>
-								</table>
-							</div>
-						</div>
-					{/each}
-				</div>
-			{/each}
-		</div>
-
-	{:else if currentPhase === 'knockout'}
-		<div class="mb-4">
 			<h2>Eliminazione Diretta</h2>
 
 			{#each categories as category}
@@ -775,8 +722,7 @@
 			{/each}
 		</div>
 	
-	
-
+		
 	{:else if currentPhase === 'finished'}
 		<div class="text-center">
 			<h2 class="text-success mb-4">🏆 TORNEO COMPLETATO!</h2>
