@@ -405,8 +405,10 @@
 				current = next;
 			}
 		});
+
 		currentPhase = 'knockout';
 	}
+
 	function setKnockoutWinner(id: string, winnerTeam: Team) {
 		knockoutMatches = knockoutMatches.map(m => m.id === id ? { ...m, w: winnerTeam } : m);
 
@@ -493,230 +495,172 @@
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet" />
 </svelte:head>
 
-<div class="container mt-4">
-	<h1 class="text-center mb-4">🏐 Torneo Volley S3</h1>
+<div class="container-fluid py-3">
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<h1 class="h3 mb-0">🏐 Torneo Volley S3</h1>
+		{#if currentPhase !== 'setup'}
+			<button class="btn btn-outline-danger btn-sm" on:click={() => { if(confirm('Vuoi davvero resettare tutto?')) reset(); }}>
+				<i class="bi bi-arrow-clockwise"></i> Reset
+			</button>
+		{/if}
+	</div>
 
-	{#if currentPhase === 'setup'}
-		<div class="text-center">
-			<div class="card">
+	{#if isLoadingTeams}
+		<div class="text-center py-5">
+			<div class="spinner-border text-primary" role="status">
+				<span class="visually-hidden">Caricamento...</span>
+			</div>
+			<p class="mt-2">Caricamento squadre...</p>
+		</div>
+	{:else if loadError}
+		<div class="alert alert-danger">
+			<i class="bi bi-exclamation-triangle"></i> {loadError}
+		</div>
+	{:else if currentPhase === 'setup'}
+		<div class="card">
+			<div class="card-body">
+				<h5 class="card-title">Setup Torneo</h5>
+				<p class="card-text">Squadre caricate: <strong>{teams.length}</strong></p>
+				<p class="text-muted">Categorie: {categories.join(', ')}</p>
+				<button class="btn btn-primary" on:click={createGroups} disabled={teams.length < 3}>
+					<i class="bi bi-play-circle"></i> Crea Gironi
+				</button>
+			</div>
+		</div>
+	{:else if currentPhase === 'group'}
+		<div class="d-flex justify-content-between align-items-center mb-3">
+			<h4 class="mb-0">Fase a Gironi</h4>
+			{#if allGroupMatchesPlayed}
+				<button class="btn btn-success" on:click={startKnockoutPhase}>
+					<i class="bi bi-trophy"></i> Inizia Eliminazione Diretta
+				</button>
+			{/if}
+		</div>
+
+		{#each categories as category}
+			<div class="card mb-4">
 				<div class="card-header bg-primary text-white">
-					<h3>Setup Torneo</h3>
+					<h5 class="mb-0">{category}</h5>
+					<small>{getCategoryRules(category)}</small>
 				</div>
 				<div class="card-body">
-					{#if isLoadingTeams}
-						<div class="spinner-border text-primary" role="status">
-							<span class="visually-hidden">Caricamento...</span>
-						</div>
-						<p class="mt-2">Caricamento squadre...</p>
-					{:else if loadError}
-						<div class="alert alert-danger">
-							<strong>Errore:</strong> {loadError}
-						</div>
-						<button class="btn btn-primary" on:click={loadTeamsFromDatabase}>
-							<i class="bi bi-arrow-clockwise"></i> Riprova
-						</button>
-					{:else if teams.length === 0}
-						<div class="alert alert-warning">
-							Nessuna squadra trovata nel database.
-						</div>
-						<button class="btn btn-primary" on:click={loadTeamsFromDatabase}>
-							<i class="bi bi-arrow-clockwise"></i> Ricarica
-						</button>
-					{:else}
-						<div class="alert alert-success">
-							<strong>Squadre caricate:</strong> {teams.length}
-						</div>
-						<div class="row mb-3">
-							{#each categories as category}
-								<div class="col-md-4">
-									<div class="badge bg-secondary me-2 mb-2">
-										{category}: {teams.filter(t => t.category === category).length}
+					{#each groupsByCategory[category] || [] as groupName}
+						<h6 class="fw-bold">{groupName.split('_').slice(-1)[0]}</h6>
+						<div class="row g-2 mb-3">
+							{#each groupMatches.filter(m => m.group === groupName) as match}
+								<div class="col-md-6 col-lg-4">
+									<div class="card card-body p-2 {match.w ? 'border-success' : ''}">
+										<div class="d-flex justify-content-between align-items-center mb-2">
+											<small class="text-muted">
+												{match.t1?.teamName} vs {match.t2?.teamName}
+											</small>
+											{#if match.field}
+												<span class="badge bg-secondary">Campo {match.field}</span>
+											{/if}
+										</div>
+										
+										{#if match.score1 !== undefined && match.score2 !== undefined}
+											<div class="text-center">
+												<strong class={match.w === match.t1 ? 'text-success' : match.w === match.t2 ? 'text-danger' : ''}>
+													{match.score1} - {match.score2}
+												</strong>
+											</div>
+											<div class="d-flex gap-1 mt-2">
+												<button class="btn btn-outline-warning btn-sm flex-fill" on:click={() => resetMatchResult(match.id)}>
+													<i class="bi bi-arrow-clockwise"></i>
+												</button>
+												<select class="form-select form-select-sm" bind:value={match.field} on:change={() => setFieldForMatch(match.id, match.field!)}>
+													<option value={undefined}>Campo</option>
+													{#each fields as field}
+														<option value={field}>{field}</option>
+													{/each}
+												</select>
+											</div>
+										{:else}
+											<div class="d-flex gap-1">
+												<input type="number" class="form-control form-control-sm" placeholder="0" bind:value={tempScores[match.id].score1} min="0">
+												<input type="number" class="form-control form-control-sm" placeholder="0" bind:value={tempScores[match.id].score2} min="0">
+												<button class="btn btn-success btn-sm" on:click={() => setGroupResult(match.id, tempScores[match.id].score1, tempScores[match.id].score2)}>
+													<i class="bi bi-check"></i>
+												</button>
+											</div>
+											<select class="form-select form-select-sm mt-1" bind:value={match.field} on:change={() => setFieldForMatch(match.id, match.field!)}>
+												<option value={undefined}>Campo</option>
+												{#each fields as field}
+													<option value={field}>{field}</option>
+												{/each}
+											</select>
+										{/if}
 									</div>
 								</div>
 							{/each}
 						</div>
-						<button class="btn btn-success btn-lg" on:click={createGroups}>
-							<i class="bi bi-play-circle"></i> Crea Gironi
-						</button>
-					{/if}
+					{/each}
 				</div>
 			</div>
-		</div>
-
-	{:else if currentPhase === 'group'}
-		<div class="mb-4">
-			<div class="d-flex justify-content-between align-items-center mb-3">
-				<h2>Fase a Gironi</h2>
-				<div>
-					{#if allGroupMatchesPlayed}
-						<button class="btn btn-success" on:click={startKnockoutPhase}>
-							<i class="bi bi-trophy"></i> Avvia Eliminazione Diretta
-						</button>
-					{/if}
-					<button class="btn btn-outline-secondary ms-2" on:click={reset}>
-						<i class="bi bi-arrow-clockwise"></i> Reset
-					</button>
-				</div>
-			</div>
-
-			{#each categories as category}
-				<div class="card mb-4">
-					<div class="card-header bg-info text-white">
-						<h4>{category}</h4>
-					</div>
-					<div class="card-body">
-						{#each groupsByCategory[category] as groupName}
-							<div class="mb-4">
-								<h5 class="text-primary">{groupName.split('_').slice(1).join(' ')}</h5>
-								<div class="row">
-									{#each groupMatches.filter(m => m.group === groupName) as match}
-										<div class="col-lg-6 mb-3">
-											<div class="card border-secondary">
-												<div class="card-body p-3">
-													<div class="d-flex justify-content-between align-items-center mb-2">
-														<strong>{match.t1?.teamName} vs {match.t2?.teamName}</strong>
-														{#if match.field}
-															<span class="badge bg-secondary">Campo {match.field}</span>
-														{/if}
-													</div>
-													
-													{#if match.score1 !== undefined && match.score2 !== undefined}
-														<div class="alert alert-success mb-2 p-2">
-															Risultato: {match.score1} - {match.score2}
-															{#if match.w}
-																<br><small>Vincitore: <strong>{match.w.teamName}</strong></small>
-															{/if}
-														</div>
-														<button class="btn btn-sm btn-outline-warning" on:click={() => resetMatchResult(match.id)}>
-															<i class="bi bi-arrow-clockwise"></i> Reset
-														</button>
-													{:else}
-														<div class="row g-2">
-															<div class="col-3">
-																<input type="number" class="form-control form-control-sm" 
-																	bind:value={tempScores[match.id].score1} placeholder="0" min="0">
-															</div>
-															<div class="col-3">
-																<input type="number" class="form-control form-control-sm" 
-																	bind:value={tempScores[match.id].score2} placeholder="0" min="0">
-															</div>
-															<div class="col-4">
-																<button class="btn btn-sm btn-primary w-100" 
-																	on:click={() => setGroupResult(match.id, tempScores[match.id].score1, tempScores[match.id].score2)}>
-																	Salva
-																</button>
-															</div>
-														</div>
-														<div class="row g-2 mt-1">
-															<div class="col-6">
-																<select class="form-select form-select-sm" 
-																	on:change={(e) => setFieldForMatch(match.id, parseInt(e.target.value))}>
-																	<option value="">Campo</option>
-																	{#each fields as field}
-																		<option value={field} selected={match.field === field}>{field}</option>
-																	{/each}
-																</select>
-															</div>
-														</div>
-														<small class="text-muted">{getCategoryRules(category)}</small>
-													{/if}
-												</div>
-											</div>
-										</div>
-									{/each}
-								</div>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/each}
-		</div>
-
+		{/each}
 	{:else if currentPhase === 'knockout'}
-		<div class="mb-4">
-			<div class="d-flex justify-content-between align-items-center mb-3">
-				<h2>Eliminazione Diretta</h2>
-				<button class="btn btn-outline-secondary" on:click={reset}>
-					<i class="bi bi-arrow-clockwise"></i> Reset
-				</button>
-			</div>
-
-			{#each categories as category}
-				<div class="card mb-4">
-					<div class="card-header bg-warning">
-						<h4>{category}</h4>
-					</div>
-					<div class="card-body">
-						{#each knockoutRoundsByCategory[category] as round}
-							<div class="mb-4">
-								<h5 class="text-primary">
-									{#if round === Math.max(...knockoutRoundsByCategory[category])}
-										🏆 FINALE
-									{:else if round === Math.max(...knockoutRoundsByCategory[category]) - 1}
-										🥇 SEMIFINALE
-									{:else}
-										Round {round}
-									{/if}
-								</h5>
-								<div class="row">
-									{#each knockoutMatches.filter(m => m.category === category && m.round === round) as match}
-										<div class="col-lg-6 mb-3">
-											<div class="card border-warning">
-												<div class="card-body p-3">
-													<div class="d-flex justify-content-between align-items-center mb-2">
-														<strong>
-															{match.t1?.teamName || 'TBD'} vs {match.t2?.teamName || 'TBD'}
-														</strong>
-														{#if match.field}
-															<span class="badge bg-secondary">Campo {match.field}</span>
-														{/if}
-													</div>
-													
-													{#if match.w}
-														<div class="alert alert-success mb-2 p-2">
-															Vincitore: <strong>{match.w.teamName}</strong>
-														</div>
-													{:else if match.t1 && match.t2}
-														<div class="row g-2">
-															<div class="col-6">
-																<button class="btn btn-sm btn-success w-100" 
-																	on:click={() => setKnockoutWinner(match.id, match.t1)}>
-																	{match.t1.teamName}
-																</button>
-															</div>
-															<div class="col-6">
-																<button class="btn btn-sm btn-success w-100" 
-																	on:click={() => setKnockoutWinner(match.id, match.t2)}>
-																	{match.t2.teamName}
-																</button>
-															</div>
-														</div>
-														<div class="row g-2 mt-1">
-															<div class="col-6">
-																<select class="form-select form-select-sm" 
-																	on:change={(e) => setFieldForMatch(match.id, parseInt(e.target.value), true)}>
-																	<option value="">Campo</option>
-																	{#each fields as field}
-																		<option value={field} selected={match.field === field}>{field}</option>
-																	{/each}
-																</select>
-															</div>
-														</div>
-													{:else}
-														<div class="text-muted">In attesa delle squadre qualificate</div>
-													{/if}
-												</div>
-											</div>
-										</div>
-									{/each}
-								</div>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/each}
+		<div class="d-flex justify-content-between align-items-center mb-3">
+			<h4 class="mb-0">Eliminazione Diretta</h4>
 		</div>
 
+		{#each categories as category}
+			<div class="card mb-4">
+				<div class="card-header bg-warning text-dark">
+					<h5 class="mb-0">{category}</h5>
+				</div>
+				<div class="card-body">
+					{#each knockoutRoundsByCategory[category] || [] as round}
+						<h6 class="fw-bold">
+							{round === Math.max(...(knockoutRoundsByCategory[category] || [])) ? 'FINALE' : `Turno ${round}`}
+						</h6>
+						<div class="row g-2 mb-3">
+							{#each knockoutMatches.filter(m => m.category === category && m.round === round) as match}
+								<div class="col-md-6 col-lg-4">
+									<div class="card card-body p-2 {match.w ? 'border-warning' : ''}">
+										<div class="d-flex justify-content-between align-items-center mb-2">
+											<small class="text-muted">
+												{match.t1?.teamName || 'TBD'} vs {match.t2?.teamName || 'TBD'}
+											</small>
+											{#if match.field}
+												<span class="badge bg-secondary">Campo {match.field}</span>
+											{/if}
+										</div>
+										
+										{#if match.t1 && match.t2}
+											{#if match.w}
+												<div class="text-center">
+													<strong class="text-warning">Vincitore: {match.w.teamName}</strong>
+												</div>
+											{:else}
+												<div class="d-flex gap-1">
+													<button class="btn btn-outline-primary btn-sm flex-fill" on:click={() => setKnockoutWinner(match.id, match.t1!)}>
+														{match.t1.teamName}
+													</button>
+													<button class="btn btn-outline-primary btn-sm flex-fill" on:click={() => setKnockoutWinner(match.id, match.t2!)}>
+														{match.t2.teamName}
+													</button>
+												</div>
+											{/if}
+											<select class="form-select form-select-sm mt-1" bind:value={match.field} on:change={() => setFieldForMatch(match.id, match.field!, true)}>
+												<option value={undefined}>Campo</option>
+												{#each fields as field}
+													<option value={field}>{field}</option>
+												{/each}
+											</select>
+										{:else}
+											<div class="text-center text-muted">
+												<small>In attesa dei risultati precedenti</small>
+											</div>
+										{/if}
+									</div>
+								</div>
+							{/each}
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/each}
 	{:else if currentPhase === 'finished'}
 		<div class="text-center">
 			<h2 class="text-success mb-4">🏆 TORNEO COMPLETATO!</h2>
@@ -747,14 +691,37 @@
 				</div>
 				<div class="card-body">
 					<div class="row text-center">
-						<div class="col-md-3">
+						<div class="col-3">
 							<h5>{teams.length}</h5>
-							<p class="text-muted">Squadre</p>
+							<p class="text-muted mb-0">Squadre</p>
 						</div>
-						<div class="col-md-3">
+						<div class="col-3">
 							<h5>{categories.length}</h5>
-							<p class="text-muted">Categorie</p>
+							<p class="text-muted mb-0">Categorie</p>
 						</div>
-						<div class="col-md-3">
+						<div class="col-3">
 							<h5>{groupMatches.length + knockoutMatches.length}</h5>
-							<p class="text-muted">
+							<p class="text-muted mb-0">Partite</p>
+						</div>
+						<div class="col-3">
+							<h5>{fields.length}</h5>
+							<p class="text-muted mb-0">Campi</p>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="mt-4">
+				<button class="btn btn-primary me-2" on:click={exportResults}>
+					<i class="bi bi-download"></i> Esporta
+				</button>
+				<button class="btn btn-outline-secondary me-2" on:click={printResults}>
+					<i class="bi bi-printer"></i> Stampa
+				</button>
+				<button class="btn btn-success" on:click={reset}>
+					<i class="bi bi-arrow-clockwise"></i> Nuovo Torneo
+				</button>
+			</div>
+		</div>
+	{/if}
+</div>
