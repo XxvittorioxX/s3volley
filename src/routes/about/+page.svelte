@@ -33,7 +33,6 @@
 		points: number;
 	}
 
-	// Tournament main state
 	let teams: Team[] = [];
 	let groupMatches: Match[] = [];
 	let knockoutMatches: Match[] = [];
@@ -50,7 +49,6 @@
 
 	const fields = Array.from({ length: 20 }, (_, i) => i + 1);
 
-	// CARICA I DATI DAL DATABASE
 	async function loadTeamsFromDatabase() {
 		isLoadingTeams = true;
 		loadError = '';
@@ -58,9 +56,7 @@
 		try {
 			const response = await fetch('/api/teams', {
 				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json'
-				}
+				headers: { 'Content-Type': 'application/json' }
 			});
 
 			if (!response.ok) {
@@ -72,12 +68,10 @@
 			if (result.success && result.teams) {
 				teams = result.teams;
 				categories = [...new Set(teams.map(t => t.category))];
-				console.log(`Caricate ${teams.length} squadre dal database`);
 			} else {
 				throw new Error(result.message || 'Errore nel caricamento squadre');
 			}
 		} catch (error) {
-			console.error('Errore nel caricamento squadre:', error);
 			loadError = error instanceof Error ? error.message : 'Errore sconosciuto';
 			teams = [];
 			categories = [];
@@ -90,7 +84,6 @@
 		loadTeamsFromDatabase();
 	});
 
-	// Scoring rules for different categories
 	function getAdvantageForCategory(category: string): number {
 		const advantages: { [key: string]: number } = {
 			'S1': 2, 'S2': 1, 'S3': 2, 'Under 12': 2, 'Seniores': 2
@@ -133,7 +126,6 @@
 		}
 	}
 
-	// Create groups based on number of teams per category
 	function createGroups() {
 		if (teams.length < 3) {
 			alert('Servono almeno 3 squadre per i gironi!');
@@ -175,7 +167,6 @@
 				
 				groups[groupName] = groupTeams;
 
-				// Generate all possible matches 
 				for (let i = 0; i < groupTeams.length; i++) {
 					for (let j = i + 1; j < groupTeams.length; j++) {
 						const matchId = `${groupName}-${i}-${j}`;
@@ -205,7 +196,6 @@
 		currentPhase = 'group';
 	}
 
-	// Recalculate group standings with 3-1-0 point system
 	function recalculateGroupStanding(groupName: string) {
 		const groupTeams = groups[groupName];
 		if (!groupTeams) return;
@@ -255,8 +245,6 @@
 								standing2.points += 3; 
 								standing1.lost++;
 							}
-						} else {
-							console.warn(`Risultato non valido: ${match.score1!}-${match.score2!}. Serve vantaggio di ${requiredAdvantage}`);
 						}
 					}
 				} else {
@@ -322,7 +310,6 @@
 		groupMatches = [...groupMatches];
 	}
 
-	// Create knockout bracket: top 2 teams from each group qualify
 	function startKnockoutPhase() {
 		qualifiedTeams = {};
 		
@@ -359,14 +346,12 @@
 				}
 			});
 
-			// Shuffle to avoid predictable matchups
 			const shuffledFirsts = [...firstPlaces].sort(() => Math.random() - 0.5);
 			const shuffledSeconds = [...secondPlaces].sort(() => Math.random() - 0.5);
 
 			let round = 1;
 			let current: Match[] = [];
 
-			// First round: firsts vs seconds
 			for (let i = 0; i < Math.min(shuffledFirsts.length, shuffledSeconds.length); i++) {
 				current.push({
 					id: `ko-${category}-${round}-${i}`, 
@@ -380,7 +365,6 @@
 				});
 			}
 
-			// Remaining teams against each other
 			const remaining = categoryQualified.filter(team => 
 				!current.some(match => match.t1 === team || match.t2 === team)
 			);
@@ -402,7 +386,6 @@
 
 			knockoutMatches = [...knockoutMatches, ...current];
 
-			// Generate subsequent rounds up to final
 			while (current.length > 1) {
 				round++;
 				const next: Match[] = [];
@@ -422,11 +405,8 @@
 				current = next;
 			}
 		});
-
 		currentPhase = 'knockout';
 	}
-
-	// Advance winner in bracket and check if tournament is finished
 	function setKnockoutWinner(id: string, winnerTeam: Team) {
 		knockoutMatches = knockoutMatches.map(m => m.id === id ? { ...m, w: winnerTeam } : m);
 
@@ -490,13 +470,16 @@
 		link.click();
 		URL.revokeObjectURL(url);
 	}
+
+	function printResults() {
+		window.print();
+	}
 	
-	// FIX: Filter out undefined rounds before processing
 	$: knockoutRoundsByCategory = categories.reduce((acc, category) => {
 		const rounds = knockoutMatches
 			.filter(m => m.category === category)
 			.map(m => m.round)
-			.filter((round): round is number => round !== undefined); // TYPE GUARD: removes undefined values
+			.filter((round): round is number => round !== undefined);
 		acc[category] = [...new Set(rounds)].sort();
 		return acc;
 	}, {} as { [key: string]: number[] });
@@ -510,8 +493,231 @@
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet" />
 </svelte:head>
 
-</div>
-		 	{:else if currentPhase === 'finished'}
+<div class="container mt-4">
+	<h1 class="text-center mb-4">🏐 Torneo Volley S3</h1>
+
+	{#if currentPhase === 'setup'}
+		<div class="text-center">
+			<div class="card">
+				<div class="card-header bg-primary text-white">
+					<h3>Setup Torneo</h3>
+				</div>
+				<div class="card-body">
+					{#if isLoadingTeams}
+						<div class="spinner-border text-primary" role="status">
+							<span class="visually-hidden">Caricamento...</span>
+						</div>
+						<p class="mt-2">Caricamento squadre...</p>
+					{:else if loadError}
+						<div class="alert alert-danger">
+							<strong>Errore:</strong> {loadError}
+						</div>
+						<button class="btn btn-primary" on:click={loadTeamsFromDatabase}>
+							<i class="bi bi-arrow-clockwise"></i> Riprova
+						</button>
+					{:else if teams.length === 0}
+						<div class="alert alert-warning">
+							Nessuna squadra trovata nel database.
+						</div>
+						<button class="btn btn-primary" on:click={loadTeamsFromDatabase}>
+							<i class="bi bi-arrow-clockwise"></i> Ricarica
+						</button>
+					{:else}
+						<div class="alert alert-success">
+							<strong>Squadre caricate:</strong> {teams.length}
+						</div>
+						<div class="row mb-3">
+							{#each categories as category}
+								<div class="col-md-4">
+									<div class="badge bg-secondary me-2 mb-2">
+										{category}: {teams.filter(t => t.category === category).length}
+									</div>
+								</div>
+							{/each}
+						</div>
+						<button class="btn btn-success btn-lg" on:click={createGroups}>
+							<i class="bi bi-play-circle"></i> Crea Gironi
+						</button>
+					{/if}
+				</div>
+			</div>
+		</div>
+
+	{:else if currentPhase === 'group'}
+		<div class="mb-4">
+			<div class="d-flex justify-content-between align-items-center mb-3">
+				<h2>Fase a Gironi</h2>
+				<div>
+					{#if allGroupMatchesPlayed}
+						<button class="btn btn-success" on:click={startKnockoutPhase}>
+							<i class="bi bi-trophy"></i> Avvia Eliminazione Diretta
+						</button>
+					{/if}
+					<button class="btn btn-outline-secondary ms-2" on:click={reset}>
+						<i class="bi bi-arrow-clockwise"></i> Reset
+					</button>
+				</div>
+			</div>
+
+			{#each categories as category}
+				<div class="card mb-4">
+					<div class="card-header bg-info text-white">
+						<h4>{category}</h4>
+					</div>
+					<div class="card-body">
+						{#each groupsByCategory[category] as groupName}
+							<div class="mb-4">
+								<h5 class="text-primary">{groupName.split('_').slice(1).join(' ')}</h5>
+								<div class="row">
+									{#each groupMatches.filter(m => m.group === groupName) as match}
+										<div class="col-lg-6 mb-3">
+											<div class="card border-secondary">
+												<div class="card-body p-3">
+													<div class="d-flex justify-content-between align-items-center mb-2">
+														<strong>{match.t1?.teamName} vs {match.t2?.teamName}</strong>
+														{#if match.field}
+															<span class="badge bg-secondary">Campo {match.field}</span>
+														{/if}
+													</div>
+													
+													{#if match.score1 !== undefined && match.score2 !== undefined}
+														<div class="alert alert-success mb-2 p-2">
+															Risultato: {match.score1} - {match.score2}
+															{#if match.w}
+																<br><small>Vincitore: <strong>{match.w.teamName}</strong></small>
+															{/if}
+														</div>
+														<button class="btn btn-sm btn-outline-warning" on:click={() => resetMatchResult(match.id)}>
+															<i class="bi bi-arrow-clockwise"></i> Reset
+														</button>
+													{:else}
+														<div class="row g-2">
+															<div class="col-3">
+																<input type="number" class="form-control form-control-sm" 
+																	bind:value={tempScores[match.id].score1} placeholder="0" min="0">
+															</div>
+															<div class="col-3">
+																<input type="number" class="form-control form-control-sm" 
+																	bind:value={tempScores[match.id].score2} placeholder="0" min="0">
+															</div>
+															<div class="col-4">
+																<button class="btn btn-sm btn-primary w-100" 
+																	on:click={() => setGroupResult(match.id, tempScores[match.id].score1, tempScores[match.id].score2)}>
+																	Salva
+																</button>
+															</div>
+														</div>
+														<div class="row g-2 mt-1">
+															<div class="col-6">
+																<select class="form-select form-select-sm" 
+																	on:change={(e) => setFieldForMatch(match.id, parseInt(e.target.value))}>
+																	<option value="">Campo</option>
+																	{#each fields as field}
+																		<option value={field} selected={match.field === field}>{field}</option>
+																	{/each}
+																</select>
+															</div>
+														</div>
+														<small class="text-muted">{getCategoryRules(category)}</small>
+													{/if}
+												</div>
+											</div>
+										</div>
+									{/each}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/each}
+		</div>
+
+	{:else if currentPhase === 'knockout'}
+		<div class="mb-4">
+			<div class="d-flex justify-content-between align-items-center mb-3">
+				<h2>Eliminazione Diretta</h2>
+				<button class="btn btn-outline-secondary" on:click={reset}>
+					<i class="bi bi-arrow-clockwise"></i> Reset
+				</button>
+			</div>
+
+			{#each categories as category}
+				<div class="card mb-4">
+					<div class="card-header bg-warning">
+						<h4>{category}</h4>
+					</div>
+					<div class="card-body">
+						{#each knockoutRoundsByCategory[category] as round}
+							<div class="mb-4">
+								<h5 class="text-primary">
+									{#if round === Math.max(...knockoutRoundsByCategory[category])}
+										🏆 FINALE
+									{:else if round === Math.max(...knockoutRoundsByCategory[category]) - 1}
+										🥇 SEMIFINALE
+									{:else}
+										Round {round}
+									{/if}
+								</h5>
+								<div class="row">
+									{#each knockoutMatches.filter(m => m.category === category && m.round === round) as match}
+										<div class="col-lg-6 mb-3">
+											<div class="card border-warning">
+												<div class="card-body p-3">
+													<div class="d-flex justify-content-between align-items-center mb-2">
+														<strong>
+															{match.t1?.teamName || 'TBD'} vs {match.t2?.teamName || 'TBD'}
+														</strong>
+														{#if match.field}
+															<span class="badge bg-secondary">Campo {match.field}</span>
+														{/if}
+													</div>
+													
+													{#if match.w}
+														<div class="alert alert-success mb-2 p-2">
+															Vincitore: <strong>{match.w.teamName}</strong>
+														</div>
+													{:else if match.t1 && match.t2}
+														<div class="row g-2">
+															<div class="col-6">
+																<button class="btn btn-sm btn-success w-100" 
+																	on:click={() => setKnockoutWinner(match.id, match.t1)}>
+																	{match.t1.teamName}
+																</button>
+															</div>
+															<div class="col-6">
+																<button class="btn btn-sm btn-success w-100" 
+																	on:click={() => setKnockoutWinner(match.id, match.t2)}>
+																	{match.t2.teamName}
+																</button>
+															</div>
+														</div>
+														<div class="row g-2 mt-1">
+															<div class="col-6">
+																<select class="form-select form-select-sm" 
+																	on:change={(e) => setFieldForMatch(match.id, parseInt(e.target.value), true)}>
+																	<option value="">Campo</option>
+																	{#each fields as field}
+																		<option value={field} selected={match.field === field}>{field}</option>
+																	{/each}
+																</select>
+															</div>
+														</div>
+													{:else}
+														<div class="text-muted">In attesa delle squadre qualificate</div>
+													{/if}
+												</div>
+											</div>
+										</div>
+									{/each}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/each}
+		</div>
+
+	{:else if currentPhase === 'finished'}
 		<div class="text-center">
 			<h2 class="text-success mb-4">🏆 TORNEO COMPLETATO!</h2>
 			 
@@ -535,7 +741,6 @@
 				</div>
 			</div>
 
-			<!-- Statistics Summary -->
 			<div class="card mt-4">
 				<div class="card-header bg-primary text-white">
 					<h4>STATISTICHE TORNEO</h4>
@@ -544,7 +749,7 @@
 					<div class="row text-center">
 						<div class="col-md-3">
 							<h5>{teams.length}</h5>
-							<p class="text-muted">Squadre Partecipanti</p>
+							<p class="text-muted">Squadre</p>
 						</div>
 						<div class="col-md-3">
 							<h5>{categories.length}</h5>
@@ -552,27 +757,4 @@
 						</div>
 						<div class="col-md-3">
 							<h5>{groupMatches.length + knockoutMatches.length}</h5>
-							<p class="text-muted">Partite Totali</p>
-						</div>
-						<div class="col-md-3">
-							<h5>{fields.length}</h5>
-							<p class="text-muted">Campi Utilizzati</p>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<!-- Action Buttons -->
-			<div class="mt-4">
-				<button class="btn btn-primary me-2" on:click={exportResults}>
-					📊 Esporta Risultati
-				</button>
-				<button class="btn btn-outline-secondary me-2" on:click={printResults}>
-					🖨️ Stampa Risultati
-				</button>
-				<button class="btn btn-success" on:click={reset}>
-					🔄 Nuovo Torneo
-				</button>
-			</div>
-		</div>
-	{/if}
+							<p class="text-muted">
