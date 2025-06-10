@@ -1,3 +1,4 @@
+
 <script lang="ts">
 	import { onMount } from 'svelte';
 
@@ -49,6 +50,38 @@
 
 	const fields = Array.from({ length: 20 }, (_, i) => i + 1);
 
+	// Salvataggio e caricamento stato
+	function saveState() {
+		const state = {
+			teams, groupMatches, knockoutMatches, groupStandings, groups, 
+			currentPhase, winner, qualifiedTeams, categories, groupsByCategory, 
+			tempScores, timestamp: Date.now()
+		};
+		localStorage.setItem('volley-s3-tournament', JSON.stringify(state));
+	}
+
+	function loadState() {
+		const saved = localStorage.getItem('volley-s3-tournament');
+		if (saved) {
+			try {
+				const state = JSON.parse(saved);
+				teams = state.teams || [];
+				groupMatches = state.groupMatches || [];
+				knockoutMatches = state.knockoutMatches || [];
+				groupStandings = state.groupStandings || {};
+				groups = state.groups || {};
+				currentPhase = state.currentPhase || 'setup';
+				winner = state.winner || {};
+				qualifiedTeams = state.qualifiedTeams || {};
+				categories = state.categories || [];
+				groupsByCategory = state.groupsByCategory || {};
+				tempScores = state.tempScores || {};
+			} catch (e) {
+				console.error('Errore nel caricamento stato:', e);
+			}
+		}
+	}
+
 	async function loadTeamsFromDatabase() {
 		isLoadingTeams = true;
 		loadError = '';
@@ -68,6 +101,7 @@
 			if (result.success && result.teams) {
 				teams = result.teams;
 				categories = [...new Set(teams.map(t => t.category))];
+				saveState();
 			} else {
 				throw new Error(result.message || 'Errore nel caricamento squadre');
 			}
@@ -81,43 +115,47 @@
 	}
 
 	onMount(() => {
-		loadTeamsFromDatabase();
+		loadState();
+		if (teams.length === 0) {
+			loadTeamsFromDatabase();
+		}
 	});
 
-	function getAdvantageForCategory(category: string): number {
-		const advantages: { [key: string]: number } = {
-			'S1': 2, 'S2': 1, 'S3': 2, 'Under 12': 2, 'Seniores': 2
+	// Regole punteggio Volley S3 specifiche per categoria - FIXED
+	function getScoreRules(category: string) {
+		const rules: Record<string, { maxScore: number; minAdvantage: number }> = {
+			'S1': { maxScore: 15, minAdvantage: 2 },
+			'S2': { maxScore: 15, minAdvantage: 2 },
+			'S3': { maxScore: 15, minAdvantage: 2 },
+			'Under 12': { maxScore: 15, minAdvantage: 2 },
+			'Seniores': { maxScore: 25, minAdvantage: 2 }
 		};
-		return advantages[category] || 2;
-	}
-
-	function getBaseScoreForCategory(category: string): number {
-		const baseScores: { [key: string]: number } = {
-			'S1': 10, 'S2': 11, 'S3': 10, 'Under 12': 10, 'Seniores': 10
-		};
-		return baseScores[category] || 10;
+		return rules[category] || { maxScore: 15, minAdvantage: 2 };
 	}
 
 	function isValidScore(score1: number, score2: number, category: string): boolean {
-		const requiredAdvantage = getAdvantageForCategory(category);
-		const baseScore = getBaseScoreForCategory(category);
+		const { maxScore, minAdvantage } = getScoreRules(category);
 		const minScore = Math.min(score1, score2);
-		const maxScore = Math.max(score1, score2);
+		const maxScore_match = Math.max(score1, score2);
 		const scoreDiff = Math.abs(score1 - score2);
 
-		if (minScore < baseScore) {
-			return maxScore >= baseScore && scoreDiff >= 1;
+		// Vittoria al punteggio base con almeno 1 punto di vantaggio
+		if (maxScore_match === maxScore && minScore < maxScore) {
+			return scoreDiff >= 1;
 		}
-		if (minScore >= baseScore) {
-			return scoreDiff >= requiredAdvantage;
+		
+		// Oltre il punteggio base serve vantaggio minimo
+		if (minScore >= maxScore) {
+			return scoreDiff >= minAdvantage;
 		}
-		return true;
+		
+		// Non è possibile vincere sotto il punteggio base
+		return false;
 	}
 
 	function getCategoryRules(category: string): string {
-		const advantage = getAdvantageForCategory(category);
-		const baseScore = getBaseScoreForCategory(category);
-		return `Si vince a ${baseScore} punti. In parità da ${baseScore}-${baseScore}, serve vantaggio di ${advantage}`;
+		const { maxScore, minAdvantage } = getScoreRules(category);
+		return `Si vince a ${maxScore} punti. In parità da ${maxScore}-${maxScore}, serve vantaggio di ${minAdvantage}`;
 	}
 
 	function initTempScore(matchId: string) {
@@ -192,8 +230,8 @@
 			}
 		});
 
-		groupStandings = { ...groupStandings };
 		currentPhase = 'group';
+		saveState();
 	}
 
 	function recalculateGroupStanding(groupName: string) {
@@ -216,37 +254,14 @@
 				standing1.played++; 
 				standing2.played++;
 
-				const category = match.category || '';
-				const requiredAdvantage = getAdvantageForCategory(category);
-				const scoreDiff = Math.abs(match.score1! - match.score2!);
-
-				if (match.score1! !== match.score2!) {
-					if (scoreDiff >= requiredAdvantage) {
-						if (match.score1! > match.score2!) {
-							standing1.won++; 
-							standing1.points += 3; 
-							standing2.lost++;
-						} else {
-							standing2.won++; 
-							standing2.points += 3; 
-							standing1.lost++;
-						}
-					} else {
-						const minScore = Math.min(match.score1!, match.score2!);
-						const baseScore = getBaseScoreForCategory(category);
-						
-						if (minScore < baseScore) {
-							if (match.score1! > match.score2!) {
-								standing1.won++; 
-								standing1.points += 3; 
-								standing2.lost++;
-							} else {
-								standing2.won++; 
-								standing2.points += 3; 
-								standing1.lost++;
-							}
-						}
-					}
+				if (match.score1! > match.score2!) {
+					standing1.won++; 
+					standing1.points += 3; 
+					standing2.lost++;
+				} else if (match.score2! > match.score1!) {
+					standing2.won++; 
+					standing2.points += 3; 
+					standing1.lost++;
 				} else {
 					standing1.drawn++; 
 					standing2.drawn++;
@@ -267,10 +282,8 @@
 		if (!match || !match.t1 || !match.t2 || !match.group || !match.category) return;
 
 		if (!isValidScore(score1, score2, match.category)) {
-			const baseScore = getBaseScoreForCategory(match.category);
-			const advantage = getAdvantageForCategory(match.category);
-			
-			alert(`Punteggio non valido per ${match.category}!\n${getCategoryRules(match.category)}\n\nEsempi validi:\n- ${baseScore}-${baseScore-2}\n- ${baseScore+advantage}-${baseScore}`);
+			const { maxScore, minAdvantage } = getScoreRules(match.category);
+			alert(`Punteggio non valido per ${match.category}!\n${getCategoryRules(match.category)}\n\nEsempi validi:\n- ${maxScore}-${maxScore-2}\n- ${maxScore+minAdvantage}-${maxScore}`);
 			return;
 		}
 
@@ -281,6 +294,7 @@
 		recalculateGroupStanding(match.group);
 		groupStandings = { ...groupStandings };
 		groupMatches = [...groupMatches];
+		saveState();
 	}
 
 	function setFieldForMatch(matchId: string, field: number, isKnockout = false) {
@@ -293,6 +307,7 @@
 			} else {
 				groupMatches = [...groupMatches];
 			}
+			saveState();
 		}
 	}
 
@@ -308,6 +323,7 @@
 		recalculateGroupStanding(match.group);
 		groupStandings = { ...groupStandings };
 		groupMatches = [...groupMatches];
+		saveState();
 	}
 
 	function startKnockoutPhase() {
@@ -407,6 +423,7 @@
 		});
 
 		currentPhase = 'knockout';
+		saveState();
 	}
 
 	function setKnockoutWinner(id: string, winnerTeam: Team) {
@@ -441,18 +458,23 @@
 		if (allCategoriesFinished) {
 			currentPhase = 'finished';
 		}
+		
+		saveState();
 	}
 
 	function reset() {
-		groupMatches = []; 
-		knockoutMatches = []; 
-		groupStandings = {}; 
-		groups = {};
-		groupsByCategory = {}; 
-		tempScores = {}; 
-		currentPhase = 'setup'; 
-		winner = {}; 
-		qualifiedTeams = {};
+		if (confirm('Sei sicuro di voler resettare tutto il torneo?')) {
+			groupMatches = []; 
+			knockoutMatches = []; 
+			groupStandings = {}; 
+			groups = {};
+			groupsByCategory = {}; 
+			tempScores = {}; 
+			currentPhase = 'setup'; 
+			winner = {}; 
+			qualifiedTeams = {};
+			localStorage.removeItem('volley-s3-tournament');
+		}
 	}
 
 	function exportResults() {
@@ -499,7 +521,7 @@
 	<div class="d-flex justify-content-between align-items-center mb-4">
 		<h1 class="h3 mb-0">🏐 Torneo Volley S3</h1>
 		{#if currentPhase !== 'setup'}
-			<button class="btn btn-outline-danger btn-sm" on:click={() => { if(confirm('Vuoi davvero resettare tutto?')) reset(); }}>
+			<button class="btn btn-outline-danger btn-sm" on:click={reset}>
 				<i class="bi bi-arrow-clockwise"></i> Reset
 			</button>
 		{/if}
@@ -579,8 +601,8 @@
 											</div>
 										{:else}
 											<div class="d-flex gap-1">
-												<input type="number" class="form-control form-control-sm" placeholder="0" bind:value={tempScores[match.id].score1} min="0">
-												<input type="number" class="form-control form-control-sm" placeholder="0" bind:value={tempScores[match.id].score2} min="0">
+												<input type="number" class="form-control form-control-sm" placeholder="0" bind:value={tempScores[match.id].score1} min="0" max={getScoreRules(match.category || '').maxScore + 10}>
+												<input type="number" class="form-control form-control-sm" placeholder="0" bind:value={tempScores[match.id].score2} min="0" max={getScoreRules(match.category || '').maxScore + 10}>
 												<!-- svelte-ignore a11y_consider_explicit_label -->
 												<button class="btn btn-success btn-sm" on:click={() => setGroupResult(match.id, tempScores[match.id].score1, tempScores[match.id].score2)}>
 													<i class="bi bi-check"></i>
