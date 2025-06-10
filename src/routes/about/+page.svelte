@@ -566,6 +566,7 @@
 												</strong>
 											</div>
 											<div class="d-flex gap-1 mt-2">
+												<!-- svelte-ignore a11y_consider_explicit_label -->
 												<button class="btn btn-outline-warning btn-sm flex-fill" on:click={() => resetMatchResult(match.id)}>
 													<i class="bi bi-arrow-clockwise"></i>
 												</button>
@@ -580,6 +581,7 @@
 											<div class="d-flex gap-1">
 												<input type="number" class="form-control form-control-sm" placeholder="0" bind:value={tempScores[match.id].score1} min="0">
 												<input type="number" class="form-control form-control-sm" placeholder="0" bind:value={tempScores[match.id].score2} min="0">
+												<!-- svelte-ignore a11y_consider_explicit_label -->
 												<button class="btn btn-success btn-sm" on:click={() => setGroupResult(match.id, tempScores[match.id].score1, tempScores[match.id].score2)}>
 													<i class="bi bi-check"></i>
 												</button>
