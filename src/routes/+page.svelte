@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	// Definizione dei tipi
 	interface Team {
 		id: number;
 		name: string;
@@ -47,7 +46,7 @@
 		message?: string;
 	}
 
-	// Dati del form
+	// Form data
 	let teamName: string = '';
 	let category: string = '';
 	let coachName: string = '';
@@ -55,7 +54,7 @@
 	let phone: string = '';
 	let isLoading: boolean = false;
 
-	// Stato di validazione
+	// Validation state
 	let errors: Errors = {
 		teamName: '',
 		category: '',
@@ -64,7 +63,7 @@
 		phone: ''
 	};
 
-	// Variables for tournament data
+	// Tournament data variables
 	let teams: Team[] = [];
 	let groupMatches: Match[] = [];
 	let groupStandings: Record<string, any> = {};
@@ -73,7 +72,6 @@
 	let groupsByCategory: Record<string, any> = {};
 	let currentPhase: string = 'registration';
 
-	// Tournament data saving function
 	function saveTournamentData(): void {
 		const tournamentData: TournamentData = {
 			teams,
@@ -87,19 +85,19 @@
 		};
 		
 		try {
-			localStorage.setItem('tournament-data', JSON.stringify(tournamentData));
+			// Utilizzo di una variabile temporanea per mantenere i dati in memoria
+			(window as any).tournamentData = tournamentData;
 			console.log('Tournament data saved successfully');
 		} catch (error) {
 			console.error('Errore nel salvataggio dati:', error);
 		}
 	}
 
-	// Function to load tournament data on component initialization
 	function loadTournamentData(): void {
 		try {
-			const savedData: string | null = localStorage.getItem('tournament-data');
-			if (savedData) {
-				const parsedData: TournamentData = JSON.parse(savedData);
+			// Carica dai dati temporanei in memoria
+			if ((window as any).tournamentData) {
+				const parsedData: TournamentData = (window as any).tournamentData;
 				teams = parsedData.teams || [];
 				groupMatches = parsedData.groupMatches || [];
 				groupStandings = parsedData.groupStandings || {};
@@ -112,29 +110,6 @@
 		} catch (error) {
 			console.error('Errore nel caricamento dati:', error);
 		}
-	}
-
-	// Tournament utility functions
-	function isValidScore(score1: string | number, score2: string | number, category: string): boolean {
-		const s1: number = parseInt(score1.toString());
-		const s2: number = parseInt(score2.toString());
-		
-		if (isNaN(s1) || isNaN(s2) || s1 < 0 || s2 < 0) return false;
-		
-		const baseScore: number = getBaseScoreForCategory(category);
-		const advantage: number = getAdvantageForCategory(category);
-		
-		// Check if it's a valid score based on category rules
-		const maxScore: number = Math.max(s1, s2);
-		const minScore: number = Math.min(s1, s2);
-		
-		if (maxScore === baseScore) {
-			return minScore <= baseScore - 2;
-		} else if (maxScore > baseScore) {
-			return maxScore - minScore === advantage;
-		}
-		
-		return false;
 	}
 
 	function getBaseScoreForCategory(category: string): number {
@@ -153,23 +128,55 @@
 	}
 
 	function getAdvantageForCategory(category: string): number {
-		switch (category) {
-			case 'S1':
-			case 'S2':
-			case 'S3':
-			case 'Seniores':
-				return 2;
-			case 'Under 12':
-				return 2;
-			default:
-				return 2;
+		return 2; // Vantaggio standard di 2 punti per tutte le categorie
+	}
+
+	function getMaxScoreForCategory(category: string): number {
+		const baseScore = getBaseScoreForCategory(category);
+		return baseScore + 20; // Massimo 20 punti oltre il punteggio base
+	}
+
+	function isValidScore(score1: string | number, score2: string | number, category: string): boolean {
+		const s1: number = parseInt(score1.toString());
+		const s2: number = parseInt(score2.toString());
+		
+		if (isNaN(s1) || isNaN(s2) || s1 < 0 || s2 < 0) return false;
+		
+		const baseScore: number = getBaseScoreForCategory(category);
+		const advantage: number = getAdvantageForCategory(category);
+		const maxScore: number = getMaxScoreForCategory(category);
+		
+		// Controllo punteggi massimi
+		if (s1 > maxScore || s2 > maxScore) return false;
+		
+		const higherScore: number = Math.max(s1, s2);
+		const lowerScore: number = Math.min(s1, s2);
+		
+		// Vittoria al punteggio base con almeno 2 punti di vantaggio
+		if (higherScore === baseScore) {
+			return lowerScore <= baseScore - advantage;
 		}
+		
+		// Vittoria oltre il punteggio base (es. 22-20, 23-21, etc.)
+		if (higherScore > baseScore) {
+			return higherScore - lowerScore === advantage;
+		}
+		
+		// Pareggio non ammesso nel volley
+		return s1 !== s2;
 	}
 
 	function getCategoryRules(category: string): string {
 		const baseScore: number = getBaseScoreForCategory(category);
 		const advantage: number = getAdvantageForCategory(category);
-		return `Regole ${category}: Primo a ${baseScore} punti, con almeno ${advantage} punti di vantaggio`;
+		const maxScore: number = getMaxScoreForCategory(category);
+		return `Regole ${category}: Primo a ${baseScore} punti (max ${maxScore}), con almeno ${advantage} punti di vantaggio`;
+	}
+
+	function getScoreExamples(category: string): string {
+		const baseScore: number = getBaseScoreForCategory(category);
+		const advantage: number = getAdvantageForCategory(category);
+		return `Esempi validi:\n- ${baseScore}-${baseScore-2}\n- ${baseScore+advantage}-${baseScore}\n- ${baseScore+4}-${baseScore+2}`;
 	}
 
 	function setGroupResult(matchId: number, score1: string | number, score2: string | number): void {
@@ -177,35 +184,129 @@
 		if (!match || !match.t1 || !match.t2 || !match.group || !match.category) return;
 		
 		if (!isValidScore(score1, score2, match.category)) {
-			const baseScore: number = getBaseScoreForCategory(match.category);
-			const advantage: number = getAdvantageForCategory(match.category);
-			
-			alert(`Punteggio non valido per ${match.category}!\n${getCategoryRules(match.category)}\n\nEsempi validi:\n- ${baseScore}-${baseScore-2}\n- ${baseScore+advantage}-${baseScore}`);
+			alert(`Punteggio non valido per ${match.category}!\n\n${getCategoryRules(match.category)}\n\n${getScoreExamples(match.category)}`);
 			return;
 		}
 		
 		match.score1 = parseInt(score1.toString());
 		match.score2 = parseInt(score2.toString());
-		match.w = match.score1 > match.score2 ? match.t1 : match.score1 < match.score2 ? match.t2 : null;
+		match.w = match.score1 > match.score2 ? match.t1 : match.t2;
+		
 		recalculateGroupStanding(match.group);
 		groupStandings = { ...groupStandings };
 		groupMatches = [...groupMatches];
 		
-		// Save tournament data after updating match result
 		saveTournamentData();
 	}
 
 	function recalculateGroupStanding(groupName: string): void {
-		// Implementation would depend on your specific tournament logic
-		// This is a placeholder function
-		console.log(`Recalculating standings for group: ${groupName}`);
+		const groupTeams = teams.filter(team => groups[groupName]?.includes(team.name));
+		const groupMatchesData = groupMatches.filter(match => match.group === groupName);
+		
+		const standings = groupTeams.map(team => {
+			const teamMatches = groupMatchesData.filter(match => 
+				match.t1 === team.name || match.t2 === team.name
+			);
+			
+			let wins = 0;
+			let losses = 0;
+			let setsWon = 0;
+			let setsLost = 0;
+			let pointsWon = 0;
+			let pointsLost = 0;
+			
+			teamMatches.forEach(match => {
+				if (match.score1 !== null && match.score2 !== null) {
+					if (team.name === match.t1) {
+						pointsWon += match.score1;
+						pointsLost += match.score2;
+						if (match.score1 > match.score2) {
+							wins++;
+							setsWon++;
+						} else {
+							losses++;
+							setsLost++;
+						}
+					} else {
+						pointsWon += match.score2;
+						pointsLost += match.score1;
+						if (match.score2 > match.score1) {
+							wins++;
+							setsWon++;
+						} else {
+							losses++;
+							setsLost++;
+						}
+					}
+				}
+			});
+			
+			return {
+				team: team.name,
+				wins,
+				losses,
+				setsWon,
+				setsLost,
+				pointsWon,
+				pointsLost,
+				setRatio: setsLost > 0 ? (setsWon / setsLost).toFixed(2) : setsWon.toString(),
+				pointRatio: pointsLost > 0 ? (pointsWon / pointsLost).toFixed(2) : pointsWon.toString()
+			};
+		});
+		
+		// Ordina per vittorie, poi per ratio set, poi per ratio punti
+		standings.sort((a, b) => {
+			if (b.wins !== a.wins) return b.wins - a.wins;
+			if (parseFloat(b.setRatio) !== parseFloat(a.setRatio)) return parseFloat(b.setRatio) - parseFloat(a.setRatio);
+			return parseFloat(b.pointRatio) - parseFloat(a.pointRatio);
+		});
+		
+		groupStandings[groupName] = standings;
 	}
 
 	function createGroups(): void {
-		// Your group creation logic here
-		console.log('Creating groups...');
+		const categoriesTeams: Record<string, Team[]> = {};
 		
-		// Save tournament data after creating groups
+		teams.forEach(team => {
+			if (!categoriesTeams[team.category]) {
+				categoriesTeams[team.category] = [];
+			}
+			categoriesTeams[team.category].push(team);
+		});
+		
+		Object.keys(categoriesTeams).forEach(cat => {
+			const teamsInCategory = categoriesTeams[cat];
+			const numGroups = Math.ceil(teamsInCategory.length / 4);
+			
+			for (let i = 0; i < numGroups; i++) {
+				const groupName = `${cat}_Gruppo_${String.fromCharCode(65 + i)}`;
+				groups[groupName] = [];
+				
+				for (let j = i; j < teamsInCategory.length; j += numGroups) {
+					groups[groupName].push(teamsInCategory[j].name);
+				}
+				
+				// Genera partite per il gruppo
+				const groupTeams = groups[groupName];
+				for (let k = 0; k < groupTeams.length; k++) {
+					for (let l = k + 1; l < groupTeams.length; l++) {
+						groupMatches.push({
+							id: Date.now() + Math.random(),
+							t1: groupTeams[k],
+							t2: groupTeams[l],
+							score1: null,
+							score2: null,
+							w: null,
+							group: groupName,
+							category: cat
+						});
+					}
+				}
+			}
+		});
+		
+		groupsByCategory = categoriesTeams;
+		currentPhase = 'groups';
 		saveTournamentData();
 	}
 
@@ -217,34 +318,19 @@
 			match.w = null;
 			recalculateGroupStanding(match.group);
 			groupMatches = [...groupMatches];
-			
-			// Save tournament data after resetting match
 			saveTournamentData();
 		}
 	}
 
 	function startKnockoutPhase(): void {
 		currentPhase = 'knockout';
-		console.log('Starting knockout phase...');
-		
-		// Save tournament data after starting knockout phase
 		saveTournamentData();
 	}
 
-	function setKnockoutWinner(matchId: number, winnerId: string): void {
-		// Your knockout winner logic here
-		console.log(`Setting knockout winner: ${winnerId} for match: ${matchId}`);
-		
-		// Save tournament data after setting knockout winner
-		saveTournamentData();
-	}
-
-	// Load tournament data when component initializes
 	onMount(() => {
 		loadTournamentData();
 	});
 
-	// Funzioni di validazione
 	function validateField(field: keyof Errors, value: string): void {
 		switch (field) {
 			case 'teamName':
@@ -292,7 +378,6 @@
 					 phone.trim() !== '' &&
 					 Object.values(errors).every(error => error === '');
 
-	// Enhanced handleSubmit function
 	async function handleSubmit(): Promise<void> {
 		validateAllFields();
 		
@@ -321,9 +406,8 @@
 			const result: ApiResponse = await response.json();
 
 			if (result.success) {
-				// Add team to local tournament data
 				const newTeam: Team = {
-					id: Date.now(), // Simple ID generation
+					id: Date.now(),
 					name: teamName.trim(),
 					category: category.trim(),
 					coach: coachName.trim(),
@@ -334,12 +418,11 @@
 				
 				teams = [...teams, newTeam];
 				
-				// Update categories if new
 				if (!categories.includes(category.trim())) {
 					categories = [...categories, category.trim()];
 				}
 
-				// Reset del form
+				// Reset form
 				teamName = '';
 				category = '';
 				coachName = '';
@@ -353,9 +436,7 @@
 					phone: ''
 				};
 
-				// Save tournament data after successful registration
 				saveTournamentData();
-
 				alert('Squadra registrata con successo nel database!');
 			} else {
 				alert(`Errore: ${result.message}`);
@@ -385,7 +466,7 @@
 							<i class="fas fa-info-circle me-2"></i>
 							<strong>Squadre registrate: {teams.length}</strong>
 							<br>
-							<small>Ultima sincronizzazione: {new Date().toLocaleString()}</small>
+							<small>Fase torneo: {currentPhase === 'registration' ? 'Registrazione' : currentPhase === 'groups' ? 'Gironi' : 'Eliminazione diretta'}</small>
 						</div>
 					{/if}
 
@@ -424,16 +505,22 @@
 									on:blur={() => validateField('category', category)}
 								>
 									<option value="">Seleziona una categoria</option>
-									<option value="S1">S1</option>
-									<option value="S2">S2</option>
-									<option value="S3">S3</option>
-									<option value="Under 12">Under 12</option>
-									<option value="Seniores">Seniores</option>
+									<option value="S1">S1 (21 punti)</option>
+									<option value="S2">S2 (21 punti)</option>
+									<option value="S3">S3 (21 punti)</option>
+									<option value="Under 12">Under 12 (15 punti)</option>
+									<option value="Seniores">Seniores (25 punti)</option>
 								</select>
 								{#if errors.category}
 									<div class="invalid-feedback">
 										<i class="fas fa-exclamation-circle me-1"></i>
 										{errors.category}
+									</div>
+								{/if}
+								{#if category}
+									<div class="form-text">
+										<i class="fas fa-info-circle me-1"></i>
+										{getCategoryRules(category)}
 									</div>
 								{/if}
 							</div>
@@ -530,13 +617,25 @@
 							</div>
 						{/if}
 					</form>
+
+					{#if teams.length >= 4}
+						<div class="mt-4">
+							<button 
+								class="btn btn-primary"
+								on:click={createGroups}
+								disabled={currentPhase !== 'registration'}
+							>
+								<i class="fas fa-layer-group me-2"></i>
+								Crea Gironi
+							</button>
+						</div>
+					{/if}
 				</div>
 			</div>
 		</div>
 	</div>
 </div>
 
-<!-- Aggiungi questo nel tuo app.html o come import nel componente principale -->
 <svelte:head>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -601,7 +700,6 @@
 		font-weight: 500;
 	}
 
-	/* Animazioni personalizzate */
 	:global(.card) {
 		animation: slideInUp 0.6s ease-out;
 	}
@@ -617,7 +715,6 @@
 		}
 	}
 
-	/* Responsive migliorata */
 	@media (max-width: 768px) {
 		:global(.container) {
 			padding-left: 10px;
