@@ -1,7 +1,14 @@
 <script lang="ts">
-	import { registeredTeams, type Team } from '$lib/stores/teams';
-	import { get } from 'svelte/store';
 	import { onMount } from 'svelte';
+
+	interface Team {
+		id?: string;
+		teamName: string;
+		category: string;
+		coachName: string;
+		email: string;
+		phone: string;
+	}
 
 	interface Match {
 		id: string; 
@@ -38,25 +45,62 @@
 	let categories: string[] = [];
 	let groupsByCategory: { [category: string]: string[] } = {};
 	let tempScores: { [key: string]: { score1: number, score2: number } } = {};
+	let isLoadingTeams = false;
+	let loadError = '';
 
 	const fields = Array.from({ length: 20 }, (_, i) => i + 1);
 
+	// CARICA I DATI DAL DATABASE
+	async function loadTeamsFromDatabase() {
+		isLoadingTeams = true;
+		loadError = '';
+		
+		try {
+			const response = await fetch('/api/teams', {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			});
+
+			if (!response.ok) {
+				throw new Error(`Errore ${response.status}: ${response.statusText}`);
+			}
+
+			const result = await response.json();
+			
+			if (result.success && result.teams) {
+				teams = result.teams;
+				categories = [...new Set(teams.map(t => t.category))];
+				console.log(`Caricate ${teams.length} squadre dal database`);
+			} else {
+				throw new Error(result.message || 'Errore nel caricamento squadre');
+			}
+		} catch (error) {
+			console.error('Errore nel caricamento squadre:', error);
+			loadError = error instanceof Error ? error.message : 'Errore sconosciuto';
+			teams = [];
+			categories = [];
+		} finally {
+			isLoadingTeams = false;
+		}
+	}
+
 	onMount(() => {
-		teams = get(registeredTeams);
-		categories = [...new Set(teams.map(t => t.category))];
+		loadTeamsFromDatabase();
 	});
 
 	// Scoring rules for different categories
 	function getAdvantageForCategory(category: string): number {
 		const advantages: { [key: string]: number } = {
-			'S1': 2, 'S2': 1, 'S3': 2, 'Under12': 2, 'Seniores': 2
+			'S1': 2, 'S2': 1, 'S3': 2, 'Under 12': 2, 'Seniores': 2
 		};
 		return advantages[category] || 2;
 	}
 
 	function getBaseScoreForCategory(category: string): number {
 		const baseScores: { [key: string]: number } = {
-			'S1': 10, 'S2': 11, 'S3': 10, 'Under12': 10, 'Seniores': 10
+			'S1': 10, 'S2': 11, 'S3': 10, 'Under 12': 10, 'Seniores': 10
 		};
 		return baseScores[category] || 10;
 	}
@@ -428,6 +472,24 @@
 		winner = {}; 
 		qualifiedTeams = {};
 	}
+
+	function exportResults() {
+		const results = {
+			winners: winner,
+			groupStandings: groupStandings,
+			allMatches: [...groupMatches, ...knockoutMatches],
+			timestamp: new Date().toISOString()
+		};
+		
+		const dataStr = JSON.stringify(results, null, 2);
+		const dataBlob = new Blob([dataStr], {type:'application/json'});
+		const url = URL.createObjectURL(dataBlob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = `torneo-results-${new Date().toISOString().split('T')[0]}.json`;
+		link.click();
+		URL.revokeObjectURL(url);
+	}
 	
 	// FIX: Filter out undefined rounds before processing
 	$: knockoutRoundsByCategory = categories.reduce((acc, category) => {
@@ -443,42 +505,75 @@
 </script>
 
 <svelte:head>
-	<title> Torneo Volley S3 </title>
+	<title>Torneo Volley S3</title>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet" />
 </svelte:head>
 
 <div class="container my-5 p-4 bg-white rounded shadow">
-	<h1 class="text-center mb-4"> Torneo Volley S3- Sistema Avanzato</h1>
+	<h1 class="text-center mb-4">🏐 Torneo Volley S3 - Sistema Avanzato</h1>
 
 	{#if currentPhase === 'setup'}
 		<div class="mb-4">
-			<h2>Squadre per Categoria</h2>
-			{#if teams.length === 0}
-				<p class="text-muted">Nessuna squadra registrata</p>
+			<div class="d-flex justify-content-between align-items-center mb-3">
+				<h2>Squadre per Categoria</h2>
+				<button class="btn btn-outline-primary" on:click={loadTeamsFromDatabase} disabled={isLoadingTeams}>
+					{#if isLoadingTeams}
+						<i class="spinner-border spinner-border-sm me-2"></i>
+						Caricamento...
+					{:else}
+						<i class="bi bi-arrow-clockwise me-2"></i>
+						Ricarica Squadre
+					{/if}
+				</button>
+			</div>
+
+			{#if isLoadingTeams}
+				<div class="text-center p-4">
+					<div class="spinner-border text-primary" role="status">
+						<span class="visually-hidden">Caricamento squadre...</span>
+					</div>
+					<p class="mt-2 text-muted">Caricamento squadre dal database...</p>
+				</div>
+			{:else if loadError}
+				<div class="alert alert-danger">
+					<h5>Errore nel caricamento delle squadre</h5>
+					<p>{loadError}</p>
+					<button class="btn btn-outline-danger" on:click={loadTeamsFromDatabase}>
+						Riprova
+					</button>
+				</div>
+			{:else if teams.length === 0}
+				<div class="alert alert-info">
+					<h5>Nessuna squadra trovata</h5>
+					<p>Vai alla pagina di registrazione per aggiungere squadre al torneo.</p>
+				</div>
 			{:else}
 				{#each categories as category}
 					<div class="card mb-3">
 						<div class="card-header d-flex justify-content-between">
-							<h4>{category} ({teams.filter(t => t.category === category).length})</h4>
+							<h4>{category} ({teams.filter(t => t.category === category).length} squadre)</h4>
 							<small class="text-muted">{getCategoryRules(category)}</small>
 						</div>
 						<div class="card-body">
 							{#each teams.filter(t => t.category === category) as team}
 								<div class="d-flex justify-content-between mb-2 p-2 border rounded">
 									<strong>{team.teamName}</strong>
-									<small>{team.coachName}</small>
+									<small class="text-muted">Coach: {team.coachName}</small>
 								</div>
 							{/each}
 						</div>
 					</div>
 				{/each}
-				<button class="btn btn-primary btn-lg" on:click={createGroups}>🚀 Crea Gironi</button>
+				<div class="text-center">
+					<button class="btn btn-primary btn-lg" on:click={createGroups}>🚀 Crea Gironi</button>
+				</div>
 			{/if}
 		</div>
 
 	{:else if currentPhase === 'group'}
 		<div class="mb-4">
-			<h2>Fase Gironi</h2>
+			<h2>Fase Gironi - Inserimento Risultati</h2>
 			
 			{#each categories as category}
 				<div class="mb-4">
@@ -495,57 +590,62 @@
 									<div class="card mb-2">
 										<div class="card-body p-2">
 											<div class="row align-items-center">
-												<div class="col-2 text-end">{match.t1?.teamName}</div>
+												<div class="col-2 text-end">
+													<strong>{match.t1?.teamName}</strong>
+												</div>
 												<div class="col-6 text-center">
 													{#if match.score1 !== undefined && match.score2 !== undefined}
-														<span class="badge bg-primary fs-6">{match.score1}-{match.score2}</span>
-														<button class="btn btn-sm btn-outline-secondary ms-2" on:click={() => resetMatchResult(match.id)}>Reset</button>
+														<span class="badge bg-success fs-6 px-3 py-2">
+															{match.score1} - {match.score2}
+														</span>
+														<button class="btn btn-sm btn-outline-secondary ms-2" 
+															on:click={() => resetMatchResult(match.id)}
+															title="Reset risultato">
+															<i class="bi bi-arrow-clockwise"></i>
+														</button>
 													{:else}
 														<div class="d-flex justify-content-center gap-2 mb-2">
-															<input type="number" class="form-control form-control-sm text-center" 
-																bind:value={tempScores[match.id].score1} min="0" style="width: 60px;">
-															<span>-</span>
-															<input type="number" class="form-control form-control-sm text-center" 
-																bind:value={tempScores[match.id].score2} min="0" style="width: 60px;">
+															<input type="number" 
+																class="form-control form-control-sm text-center" 
+																bind:value={tempScores[match.id].score1} 
+																min="0" 
+																style="width: 70px;"
+																placeholder="0">
+															<span class="align-self-center fw-bold">-</span>
+															<input type="number" 
+																class="form-control form-control-sm text-center" 
+																bind:value={tempScores[match.id].score2} 
+																min="0" 
+																style="width: 70px;"
+																placeholder="0">
 														</div>
 														<button class="btn btn-sm btn-success"
 															on:click={() => setGroupResult(match.id, tempScores[match.id].score1 || 0, tempScores[match.id].score2 || 0)}>
-															Conferma
+															<i class="bi bi-check-lg me-1"></i>
+															Conferma Risultato
 														</button>
 													{/if}
 												</div>
-												<div class="col-2">{match.t2?.teamName}</div>
+												<div class="col-2">
+													<strong>{match.t2?.teamName}</strong>
+												</div>
 												<div class="col-2">
 													<select class="form-select form-select-sm" 
 														bind:value={match.field}
 														on:change={() => setFieldForMatch(match.id, match.field || 1)}>
-														<option value={undefined}>Campo</option>
+														<option value={undefined}>Scegli Campo</option>
 														{#each fields as field}
-															<option value={field}>{field}</option>
+															<option value={field}>Campo {field}</option>
 														{/each}
 													</select>
+													{#if match.field}
+														<small class="text-muted">Campo {match.field}</small>
+													{/if}
 												</div>
 											</div>
 										</div>
 									</div>
 								{/each}
-								
-								<div class="mt-3">
-									<h6>Classifica</h6>
-									<table class="table table-sm">
-										<thead><tr><th>Pos</th><th>Squadra</th><th>P</th><th>V</th><th>N</th><th>S</th><th>Punti</th></tr></thead>
-										<tbody>
-											{#each groupStandings[groupName] || [] as standing, i}
-												<tr class="{i < 2 ? 'table-success' : ''}">
-													<td>{i + 1}</td><td>{standing.team.teamName}</td>
-													<td>{standing.played}</td><td>{standing.won}</td>
-													<td>{standing.drawn}</td><td>{standing.lost}</td>
-													<td><strong>{standing.points}</strong></td>
-												</tr>
-											{/each}
-										</tbody>
-									</table>
-								</div>
 							</div>
 						</div>
 					{/each}
@@ -553,10 +653,61 @@
 			{/each}
 
 			{#if allGroupMatchesPlayed}
-				<div class="text-center">
-					<button class="btn btn-success btn-lg" on:click={startKnockoutPhase}>🏆 Eliminazione Diretta</button>
+				<div class="text-center mt-4">
+					<div class="alert alert-success">
+						<h5><i class="bi bi-check-circle me-2"></i>Tutti i match dei gironi completati!</h5>
+						<p class="mb-0">Le prime 2 squadre di ogni girone si qualificano per l'eliminazione diretta.</p>
+					</div>
+					<button class="btn btn-success btn-lg" on:click={startKnockoutPhase}>
+						🏆 Inizia Eliminazione Diretta
+					</button>
 				</div>
 			{/if}
+		</div>
+
+		<!-- GROUP STANDINGS SECTION -->
+		<div class="mb-4">
+			<h3>📊 Classifiche Gironi</h3>
+			{#each categories as category}
+				<div class="mb-4">
+					<h4 class="text-primary">{category}</h4>
+					{#each groupsByCategory[category] || [] as groupName}
+						<div class="card mb-3">
+							<div class="card-header">
+								<h6 class="mb-0">{groupName.split('_').slice(1).join(' ')}</h6>
+							</div>
+							<div class="card-body p-0">
+								<table class="table table-sm mb-0">
+									<thead class="table-light">
+										<tr>
+											<th>Pos</th>
+											<th>Squadra</th>
+											<th>G</th>
+											<th>V</th>
+											<th>P</th>
+											<th>S</th>
+											<th>Punti</th>
+										</tr>
+									</thead>
+									<tbody>
+										{#each groupStandings[groupName] || [] as standing, index}
+											<tr class={index < 2 ? 'table-success' : ''}>
+												<td><strong>{index + 1}</strong></td>
+												<td><strong>{standing.team.teamName}</strong></td>
+												<td>{standing.played}</td>
+												<td>{standing.won}</td>
+												<td>{standing.lost}</td>
+												<td>{standing.drawn}</td>
+												<td><strong>{standing.points}</strong></td>
+											</tr>
+										{/each}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/each}
 		</div>
 
 	{:else if currentPhase === 'knockout'}
@@ -623,6 +774,8 @@
 				</div>
 			{/each}
 		</div>
+	
+	
 
 	{:else if currentPhase === 'finished'}
 		<div class="text-center">
