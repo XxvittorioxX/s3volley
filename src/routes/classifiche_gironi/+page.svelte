@@ -432,7 +432,7 @@
 	}
 	
 	.table td {
-		font-size: 0.90rem;
+		font-size: 0.9rem;
 		vertical-align: middle;
 	}
 	
