@@ -1,16 +1,62 @@
 <script lang="ts">
-	// Dati del form (uguale a prima)
-	let teamName = '';
-	let category = '';
-	let coachName = '';
-	let email = '';
-	let phone = '';
+	import { onMount } from 'svelte';
 
-	// AGGIUNGI QUESTA VARIABILE
-	let isLoading = false;
+	// Definizione dei tipi
+	interface Team {
+		id: number;
+		name: string;
+		category: string;
+		coach: string;
+		email: string;
+		phone: string;
+		registrationDate: string;
+	}
 
-	// Stato di validazione (uguale a prima)
-	let errors = {
+	interface Match {
+		id: number;
+		t1: string;
+		t2: string;
+		score1: number | null;
+		score2: number | null;
+		w: string | null;
+		group: string;
+		category: string;
+	}
+
+	interface Errors {
+		teamName: string;
+		category: string;
+		coachName: string;
+		email: string;
+		phone: string;
+	}
+
+	interface TournamentData {
+		teams: Team[];
+		groupMatches: Match[];
+		groupStandings: Record<string, any>;
+		groups: Record<string, any>;
+		categories: string[];
+		groupsByCategory: Record<string, any>;
+		currentPhase: string;
+		timestamp: string;
+	}
+
+	interface ApiResponse {
+		success: boolean;
+		message?: string;
+	}
+
+	// Dati del form
+	let teamName: string = '';
+	let category: string = '';
+	let coachName: string = '';
+	let email: string = '';
+	let phone: string = '';
+	let isLoading: boolean = false;
+
+	// Stato di validazione
+	let errors: Errors = {
 		teamName: '',
 		category: '',
 		coachName: '',
@@ -18,8 +64,188 @@
 		phone: ''
 	};
 
-	// Tutte le funzioni di validazione restano UGUALI
-	function validateField(field: string, value: string) {
+	// Variables for tournament data
+	let teams: Team[] = [];
+	let groupMatches: Match[] = [];
+	let groupStandings: Record<string, any> = {};
+	let groups: Record<string, any> = {};
+	let categories: string[] = [];
+	let groupsByCategory: Record<string, any> = {};
+	let currentPhase: string = 'registration';
+
+	// Tournament data saving function
+	function saveTournamentData(): void {
+		const tournamentData: TournamentData = {
+			teams,
+			groupMatches,
+			groupStandings,
+			groups,
+			categories,
+			groupsByCategory,
+			currentPhase,
+			timestamp: new Date().toISOString()
+		};
+		
+		try {
+			localStorage.setItem('tournament-data', JSON.stringify(tournamentData));
+			console.log('Tournament data saved successfully');
+		} catch (error) {
+			console.error('Errore nel salvataggio dati:', error);
+		}
+	}
+
+	// Function to load tournament data on component initialization
+	function loadTournamentData(): void {
+		try {
+			const savedData: string | null = localStorage.getItem('tournament-data');
+			if (savedData) {
+				const parsedData: TournamentData = JSON.parse(savedData);
+				teams = parsedData.teams || [];
+				groupMatches = parsedData.groupMatches || [];
+				groupStandings = parsedData.groupStandings || {};
+				groups = parsedData.groups || {};
+				categories = parsedData.categories || [];
+				groupsByCategory = parsedData.groupsByCategory || {};
+				currentPhase = parsedData.currentPhase || 'registration';
+				console.log('Tournament data loaded successfully');
+			}
+		} catch (error) {
+			console.error('Errore nel caricamento dati:', error);
+		}
+	}
+
+	// Tournament utility functions
+	function isValidScore(score1: string | number, score2: string | number, category: string): boolean {
+		const s1: number = parseInt(score1.toString());
+		const s2: number = parseInt(score2.toString());
+		
+		if (isNaN(s1) || isNaN(s2) || s1 < 0 || s2 < 0) return false;
+		
+		const baseScore: number = getBaseScoreForCategory(category);
+		const advantage: number = getAdvantageForCategory(category);
+		
+		// Check if it's a valid score based on category rules
+		const maxScore: number = Math.max(s1, s2);
+		const minScore: number = Math.min(s1, s2);
+		
+		if (maxScore === baseScore) {
+			return minScore <= baseScore - 2;
+		} else if (maxScore > baseScore) {
+			return maxScore - minScore === advantage;
+		}
+		
+		return false;
+	}
+
+	function getBaseScoreForCategory(category: string): number {
+		switch (category) {
+			case 'S1':
+			case 'S2':
+			case 'S3':
+				return 21;
+			case 'Under 12':
+				return 15;
+			case 'Seniores':
+				return 25;
+			default:
+				return 21;
+		}
+	}
+
+	function getAdvantageForCategory(category: string): number {
+		switch (category) {
+			case 'S1':
+			case 'S2':
+			case 'S3':
+			case 'Seniores':
+				return 2;
+			case 'Under 12':
+				return 2;
+			default:
+				return 2;
+		}
+	}
+
+	function getCategoryRules(category: string): string {
+		const baseScore: number = getBaseScoreForCategory(category);
+		const advantage: number = getAdvantageForCategory(category);
+		return `Regole ${category}: Primo a ${baseScore} punti, con almeno ${advantage} punti di vantaggio`;
+	}
+
+	function setGroupResult(matchId: number, score1: string | number, score2: string | number): void {
+		const match: Match | undefined = groupMatches.find(m => m.id === matchId);
+		if (!match || !match.t1 || !match.t2 || !match.group || !match.category) return;
+		
+		if (!isValidScore(score1, score2, match.category)) {
+			const baseScore: number = getBaseScoreForCategory(match.category);
+			const advantage: number = getAdvantageForCategory(match.category);
+			
+			alert(`Punteggio non valido per ${match.category}!\n${getCategoryRules(match.category)}\n\nEsempi validi:\n- ${baseScore}-${baseScore-2}\n- ${baseScore+advantage}-${baseScore}`);
+			return;
+		}
+		
+		match.score1 = parseInt(score1.toString());
+		match.score2 = parseInt(score2.toString());
+		match.w = match.score1 > match.score2 ? match.t1 : match.score1 < match.score2 ? match.t2 : null;
+		recalculateGroupStanding(match.group);
+		groupStandings = { ...groupStandings };
+		groupMatches = [...groupMatches];
+		
+		// Save tournament data after updating match result
+		saveTournamentData();
+	}
+
+	function recalculateGroupStanding(groupName: string): void {
+		// Implementation would depend on your specific tournament logic
+		// This is a placeholder function
+		console.log(`Recalculating standings for group: ${groupName}`);
+	}
+
+	function createGroups(): void {
+		// Your group creation logic here
+		console.log('Creating groups...');
+		
+		// Save tournament data after creating groups
+		saveTournamentData();
+	}
+
+	function resetMatchResult(matchId: number): void {
+		const match: Match | undefined = groupMatches.find(m => m.id === matchId);
+		if (match) {
+			match.score1 = null;
+			match.score2 = null;
+			match.w = null;
+			recalculateGroupStanding(match.group);
+			groupMatches = [...groupMatches];
+			
+			// Save tournament data after resetting match
+			saveTournamentData();
+		}
+	}
+
+	function startKnockoutPhase(): void {
+		currentPhase = 'knockout';
+		console.log('Starting knockout phase...');
+		
+		// Save tournament data after starting knockout phase
+		saveTournamentData();
+	}
+
+	function setKnockoutWinner(matchId: number, winnerId: string): void {
+		// Your knockout winner logic here
+		console.log(`Setting knockout winner: ${winnerId} for match: ${matchId}`);
+		
+		// Save tournament data after setting knockout winner
+		saveTournamentData();
+	}
+
+	// Load tournament data when component initializes
+	onMount(() => {
+		loadTournamentData();
+	});
+
+	// Funzioni di validazione
+	function validateField(field: keyof Errors, value: string): void {
 		switch (field) {
 			case 'teamName':
 				errors.teamName = value.trim() === '' ? 'Il nome della squadra è obbligatorio' : '';
@@ -51,7 +277,7 @@
 		}
 	}
 
-	function validateAllFields() {
+	function validateAllFields(): void {
 		validateField('teamName', teamName);
 		validateField('category', category);
 		validateField('coachName', coachName);
@@ -66,8 +292,8 @@
 					 phone.trim() !== '' &&
 					 Object.values(errors).every(error => error === '');
 
-	// SOSTITUISCI QUESTA FUNZIONE
-	async function handleSubmit() {
+	// Enhanced handleSubmit function
+	async function handleSubmit(): Promise<void> {
 		validateAllFields();
 		
 		if (!isFormValid) {
@@ -78,7 +304,7 @@
 		isLoading = true;
 
 		try {
-			const response = await fetch('/api/teams', {
+			const response: Response = await fetch('/api/teams', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
@@ -92,9 +318,27 @@
 				})
 			});
 
-			const result = await response.json();
+			const result: ApiResponse = await response.json();
 
 			if (result.success) {
+				// Add team to local tournament data
+				const newTeam: Team = {
+					id: Date.now(), // Simple ID generation
+					name: teamName.trim(),
+					category: category.trim(),
+					coach: coachName.trim(),
+					email: email.trim(),
+					phone: phone.trim(),
+					registrationDate: new Date().toISOString()
+				};
+				
+				teams = [...teams, newTeam];
+				
+				// Update categories if new
+				if (!categories.includes(category.trim())) {
+					categories = [...categories, category.trim()];
+				}
+
 				// Reset del form
 				teamName = '';
 				category = '';
@@ -109,11 +353,14 @@
 					phone: ''
 				};
 
+				// Save tournament data after successful registration
+				saveTournamentData();
+
 				alert('Squadra registrata con successo nel database!');
 			} else {
 				alert(`Errore: ${result.message}`);
 			}
-		} catch (error) {
+		} catch (error: unknown) {
 			console.error('Errore di rete:', error);
 			alert('Errore di connessione. Riprova più tardi.');
 		} finally {
@@ -133,6 +380,15 @@
 					</h1>
 				</div>
 				<div class="card-body p-4">
+					{#if teams.length > 0}
+						<div class="alert alert-success mb-4">
+							<i class="fas fa-info-circle me-2"></i>
+							<strong>Squadre registrate: {teams.length}</strong>
+							<br>
+							<small>Ultima sincronizzazione: {new Date().toLocaleString()}</small>
+						</div>
+					{/if}
+
 					<form on:submit|preventDefault={handleSubmit} novalidate>
 						<div class="row">
 							<div class="col-md-6 mb-3">
@@ -249,22 +505,22 @@
 						</div>
 
 						<div class="d-grid gap-2 mt-4">
-					<button 
-						type="submit" 
-						class="btn btn-lg {isFormValid && !isLoading ? 'btn-success' : 'btn-secondary'}"
-						disabled={!isFormValid || isLoading}
-						>
-						{#if isLoading}
-						<i class="fas fa-spinner fa-spin me-2"></i>
-						Registrazione in corso...
-						{:else if isFormValid}
-						<i class="fas fa-check-circle me-2"></i>
-							Registra Squadra
-						{:else}
-							<i class="fas fa-exclamation-triangle me-2"></i>
-						Compila tutti i campi obbligatori
-						{/if}
-						</button>
+							<button 
+								type="submit" 
+								class="btn btn-lg {isFormValid && !isLoading ? 'btn-success' : 'btn-secondary'}"
+								disabled={!isFormValid || isLoading}
+							>
+								{#if isLoading}
+									<i class="fas fa-spinner fa-spin me-2"></i>
+									Registrazione in corso...
+								{:else if isFormValid}
+									<i class="fas fa-check-circle me-2"></i>
+									Registra Squadra
+								{:else}
+									<i class="fas fa-exclamation-triangle me-2"></i>
+									Compila tutti i campi obbligatori
+								{/if}
+							</button>
 						</div>
 
 						{#if !isFormValid}
