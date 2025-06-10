@@ -72,7 +72,7 @@
 			error = '';
 
 			// Prova a caricare dal localStorage
-			const savedData = localStorage.getItem('tournament-data');
+			const savedData = localStorage.getItem('volley-s3-tournament');
 			if (savedData) {
 				const tournamentData = JSON.parse(savedData);
 				
