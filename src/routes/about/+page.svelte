@@ -659,6 +659,14 @@
 						<p class="mb-0">Le prime 2 squadre di ogni girone si qualificano per l'eliminazione diretta.</p>
 					</div>
 					<button class="btn btn-success btn-lg" on:click={startKnockoutPhase}>
+						🏆 Inizia Eliminazione Diretta
+					</button>
+				</div>
+			{/if}
+		</div>
+
+	{:else if currentPhase === 'knockout'}
+		<div class="mb-4">
 			<h2>Eliminazione Diretta</h2>
 
 			{#each categories as category}
@@ -721,7 +729,6 @@
 				</div>
 			{/each}
 		</div>
-	
 		
 	{:else if currentPhase === 'finished'}
 		<div class="text-center">
@@ -729,37 +736,4 @@
 			
 			<div class="card">
 				<div class="card-header bg-success text-white">
-					<h3>VINCITORI</h3>
-				</div>
-				<div class="card-body">
-					{#each categories as category}
-						{#if winner[category]}
-							<div class="alert alert-light border-success mb-2">
-								<h4>🏆 {category}: {winner[category]?.teamName}</h4>
-								<small>Coach: {winner[category]?.coachName}</small>
-							</div>
-						{/if}
-					{/each}
-				</div>
-			</div>
-
-			<button class="btn btn-outline-primary btn-lg mt-4" on:click={reset}>🔄 Nuovo Torneo</button>
-		</div>
-	{/if}
-
-	{#if currentPhase !== 'setup'}
-		<div class="text-center mt-4 pt-3 border-top">
-			<button class="btn btn-outline-danger" on:click={reset}>🔄 Reset Completo</button>
-		</div>
-	{/if}
-</div>
-
-<style>
-	.card { 
-		box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-	}
-	.card-header { 
-		background-color: #f8f9fa; 
-		font-weight: 600; 
-	}
-</style>
+					<h3>VINCITORI</h3
