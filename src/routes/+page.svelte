@@ -327,6 +327,20 @@
 		saveTournamentData();
 	}
 
+	function resetGroups(): void {
+		if (confirm('Sei sicuro di voler resettare i gironi? Tutti i risultati delle partite andranno persi.')) {
+			// Reset delle variabili dei gironi
+			groups = {};
+			groupMatches = [];
+			groupStandings = {};
+			groupsByCategory = {};
+			currentPhase = 'registration';
+			
+			saveTournamentData();
+			alert('Gironi resettati con successo!');
+		}
+	}
+
 	onMount(() => {
 		loadTournamentData();
 	});
@@ -620,14 +634,32 @@
 
 					{#if teams.length >= 4}
 						<div class="mt-4">
-							<button 
-								class="btn btn-primary"
-								on:click={createGroups}
-								disabled={currentPhase !== 'registration'}
-							>
-								<i class="fas fa-layer-group me-2"></i>
-								Crea Gironi
-							</button>
+							{#if currentPhase === 'registration'}
+								<button 
+									class="btn btn-primary"
+									on:click={createGroups}
+								>
+									<i class="fas fa-layer-group me-2"></i>
+									Crea Gironi
+								</button>
+							{:else if currentPhase === 'groups'}
+								<div class="d-flex gap-2 flex-wrap">
+									<button 
+										class="btn btn-warning"
+										on:click={resetGroups}
+									>
+										<i class="fas fa-undo me-2"></i>
+										Resetta Gironi
+									</button>
+									<button 
+										class="btn btn-success"
+										on:click={startKnockoutPhase}
+									>
+										<i class="fas fa-trophy me-2"></i>
+										Avvia Fase Eliminatoria
+									</button>
+								</div>
+							{/if}
 						</div>
 					{/if}
 				</div>
