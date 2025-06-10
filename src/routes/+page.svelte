@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 
 	interface Team {
 		id: number;
@@ -41,20 +41,25 @@
 		timestamp: string;
 	}
 
-	interface ApiResponse {
-		success: boolean;
-		message?: string;
-	}
+	// Stato globale persistente
+	const STORAGE_KEY = 'tournament_data_persistent';
+	
+	// Stato reattivo
+	let teams: Team[] = [];
+	let groupMatches: Match[] = [];
+	let groupStandings: Record<string, any> = {};
+	let groups: Record<string, any> = {};
+	let categories: string[] = [];
+	let groupsByCategory: Record<string, any> = {};
+	let currentPhase: string = 'registration';
 
-	// Form data
+	// Form state
 	let teamName: string = '';
 	let category: string = '';
 	let coachName: string = '';
 	let email: string = '';
 	let phone: string = '';
 	let isLoading: boolean = false;
-
-	// Validation state
 	let errors: Errors = {
 		teamName: '',
 		category: '',
@@ -63,14 +68,33 @@
 		phone: ''
 	};
 
-	// Tournament data variables
-	let teams: Team[] = [];
-	let groupMatches: Match[] = [];
-	let groupStandings: Record<string, any> = {};
-	let groups: Record<string, any> = {};
-	let categories: string[] = [];
-	let groupsByCategory: Record<string, any> = {};
-	let currentPhase: string = 'registration';
+	// Estende il tipo Window per includere tournamentState
+	declare global {
+		interface Window {
+			tournamentState?: {
+				data: TournamentData | null;
+				listeners: Set<() => void>;
+				notifyAll: () => void;
+			};
+		}
+	}
+
+	// Gestione stato globale migliorata
+	function initializeGlobalState(): void {
+		if (typeof window !== 'undefined') {
+			// Crea un oggetto globale per la persistenza
+			if (!window.tournamentState) {
+				window.tournamentState = {
+					data: null,
+					listeners: new Set<() => void>(),
+					// Metodo per aggiornare tutti i componenti
+					notifyAll: function() {
+						this.listeners.forEach((listener: () => void) => listener());
+					}
+				};
+			}
+		}
+	}
 
 	function saveTournamentData(): void {
 		const tournamentData: TournamentData = {
@@ -85,8 +109,17 @@
 		};
 		
 		try {
-			// Utilizzo di una variabile temporanea per mantenere i dati in memoria
-			(window as any).tournamentData = tournamentData;
+			// Salva nello stato globale
+			if (typeof window !== 'undefined') {
+				window.tournamentState.data = tournamentData;
+				window.tournamentState.notifyAll();
+			}
+			
+			// Backup in sessionStorage per maggiore persistenza
+			if (typeof sessionStorage !== 'undefined') {
+				sessionStorage.setItem(STORAGE_KEY, JSON.stringify(tournamentData));
+			}
+			
 			console.log('Tournament data saved successfully');
 		} catch (error) {
 			console.error('Errore nel salvataggio dati:', error);
@@ -95,16 +128,28 @@
 
 	function loadTournamentData(): void {
 		try {
-			// Carica dai dati temporanei in memoria
-			if ((window as any).tournamentData) {
-				const parsedData: TournamentData = (window as any).tournamentData;
-				teams = parsedData.teams || [];
-				groupMatches = parsedData.groupMatches || [];
-				groupStandings = parsedData.groupStandings || {};
-				groups = parsedData.groups || {};
-				categories = parsedData.categories || [];
-				groupsByCategory = parsedData.groupsByCategory || {};
-				currentPhase = parsedData.currentPhase || 'registration';
+			let loadedData: TournamentData | null = null;
+			
+			// Prova prima dallo stato globale
+			if (typeof window !== 'undefined' && window.tournamentState?.data) {
+				loadedData = window.tournamentState.data;
+			}
+			// Fallback a sessionStorage
+			else if (typeof sessionStorage !== 'undefined') {
+				const stored = sessionStorage.getItem(STORAGE_KEY);
+				if (stored) {
+					loadedData = JSON.parse(stored);
+				}
+			}
+			
+			if (loadedData) {
+				teams = loadedData.teams || [];
+				groupMatches = loadedData.groupMatches || [];
+				groupStandings = loadedData.groupStandings || {};
+				groups = loadedData.groups || {};
+				categories = loadedData.categories || [];
+				groupsByCategory = loadedData.groupsByCategory || {};
+				currentPhase = loadedData.currentPhase || 'registration';
 				console.log('Tournament data loaded successfully');
 			}
 		} catch (error) {
@@ -112,6 +157,25 @@
 		}
 	}
 
+	// Listener per aggiornamenti da altre istanze
+	function setupStateListener(): (() => void) | undefined {
+		if (typeof window !== 'undefined' && window.tournamentState) {
+			const updateListener = (): void => {
+				loadTournamentData();
+			};
+			window.tournamentState.listeners.add(updateListener);
+			
+			// Cleanup function
+			return (): void => {
+				if (window.tournamentState) {
+					window.tournamentState.listeners.delete(updateListener);
+				}
+			};
+		}
+		return undefined;
+	}
+
+	// Regole di punteggio
 	function getBaseScoreForCategory(category: string): number {
 		switch (category) {
 			case 'S1':
@@ -128,12 +192,12 @@
 	}
 
 	function getAdvantageForCategory(category: string): number {
-		return 2; // Vantaggio standard di 2 punti per tutte le categorie
+		return 2;
 	}
 
 	function getMaxScoreForCategory(category: string): number {
 		const baseScore = getBaseScoreForCategory(category);
-		return baseScore + 20; // Massimo 20 punti oltre il punteggio base
+		return baseScore + 20;
 	}
 
 	function isValidScore(score1: string | number, score2: string | number, category: string): boolean {
@@ -146,23 +210,19 @@
 		const advantage: number = getAdvantageForCategory(category);
 		const maxScore: number = getMaxScoreForCategory(category);
 		
-		// Controllo punteggi massimi
 		if (s1 > maxScore || s2 > maxScore) return false;
 		
 		const higherScore: number = Math.max(s1, s2);
 		const lowerScore: number = Math.min(s1, s2);
 		
-		// Vittoria al punteggio base con almeno 2 punti di vantaggio
 		if (higherScore === baseScore) {
 			return lowerScore <= baseScore - advantage;
 		}
 		
-		// Vittoria oltre il punteggio base (es. 22-20, 23-21, etc.)
 		if (higherScore > baseScore) {
 			return higherScore - lowerScore === advantage;
 		}
 		
-		// Pareggio non ammesso nel volley
 		return s1 !== s2;
 	}
 
@@ -173,18 +233,13 @@
 		return `Regole ${category}: Primo a ${baseScore} punti (max ${maxScore}), con almeno ${advantage} punti di vantaggio`;
 	}
 
-	function getScoreExamples(category: string): string {
-		const baseScore: number = getBaseScoreForCategory(category);
-		const advantage: number = getAdvantageForCategory(category);
-		return `Esempi validi:\n- ${baseScore}-${baseScore-2}\n- ${baseScore+advantage}-${baseScore}\n- ${baseScore+4}-${baseScore+2}`;
-	}
-
+	// Gestione risultati
 	function setGroupResult(matchId: number, score1: string | number, score2: string | number): void {
 		const match: Match | undefined = groupMatches.find(m => m.id === matchId);
 		if (!match || !match.t1 || !match.t2 || !match.group || !match.category) return;
 		
 		if (!isValidScore(score1, score2, match.category)) {
-			alert(`Punteggio non valido per ${match.category}!\n\n${getCategoryRules(match.category)}\n\n${getScoreExamples(match.category)}`);
+			alert(`Punteggio non valido per ${match.category}!\n\n${getCategoryRules(match.category)}`);
 			return;
 		}
 		
@@ -254,7 +309,6 @@
 			};
 		});
 		
-		// Ordina per vittorie, poi per ratio set, poi per ratio punti
 		standings.sort((a, b) => {
 			if (b.wins !== a.wins) return b.wins - a.wins;
 			if (parseFloat(b.setRatio) !== parseFloat(a.setRatio)) return parseFloat(b.setRatio) - parseFloat(a.setRatio);
@@ -264,6 +318,7 @@
 		groupStandings[groupName] = standings;
 	}
 
+	// Creazione gironi
 	function createGroups(): void {
 		const categoriesTeams: Record<string, Team[]> = {};
 		
@@ -286,7 +341,6 @@
 					groups[groupName].push(teamsInCategory[j].name);
 				}
 				
-				// Genera partite per il gruppo
 				const groupTeams = groups[groupName];
 				for (let k = 0; k < groupTeams.length; k++) {
 					for (let l = k + 1; l < groupTeams.length; l++) {
@@ -310,26 +364,8 @@
 		saveTournamentData();
 	}
 
-	function resetMatchResult(matchId: number): void {
-		const match: Match | undefined = groupMatches.find(m => m.id === matchId);
-		if (match) {
-			match.score1 = null;
-			match.score2 = null;
-			match.w = null;
-			recalculateGroupStanding(match.group);
-			groupMatches = [...groupMatches];
-			saveTournamentData();
-		}
-	}
-
-	function startKnockoutPhase(): void {
-		currentPhase = 'knockout';
-		saveTournamentData();
-	}
-
 	function resetGroups(): void {
 		if (confirm('Sei sicuro di voler resettare i gironi? Tutti i risultati delle partite andranno persi.')) {
-			// Reset delle variabili dei gironi
 			groups = {};
 			groupMatches = [];
 			groupStandings = {};
@@ -341,10 +377,12 @@
 		}
 	}
 
-	onMount(() => {
-		loadTournamentData();
-	});
+	function startKnockoutPhase(): void {
+		currentPhase = 'knockout';
+		saveTournamentData();
+	}
 
+	// Validazione form
 	function validateField(field: keyof Errors, value: string): void {
 		switch (field) {
 			case 'teamName':
@@ -403,87 +441,95 @@
 		isLoading = true;
 
 		try {
-			const response: Response = await fetch('/api/teams', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					teamName: teamName.trim(),
-					category: category.trim(),
-					coachName: coachName.trim(),
-					email: email.trim(),
-					phone: phone.trim()
-				})
-			});
+			// Simula chiamata API
+			await new Promise(resolve => setTimeout(resolve, 1000));
 
-			const result: ApiResponse = await response.json();
-
-			if (result.success) {
-				const newTeam: Team = {
-					id: Date.now(),
-					name: teamName.trim(),
-					category: category.trim(),
-					coach: coachName.trim(),
-					email: email.trim(),
-					phone: phone.trim(),
-					registrationDate: new Date().toISOString()
-				};
-				
-				teams = [...teams, newTeam];
-				
-				if (!categories.includes(category.trim())) {
-					categories = [...categories, category.trim()];
-				}
-
-				// Reset form
-				teamName = '';
-				category = '';
-				coachName = '';
-				email = '';
-				phone = '';
-				errors = {
-					teamName: '',
-					category: '',
-					coachName: '',
-					email: '',
-					phone: ''
-				};
-
-				saveTournamentData();
-				alert('Squadra registrata con successo nel database!');
-			} else {
-				alert(`Errore: ${result.message}`);
+			const newTeam: Team = {
+				id: Date.now(),
+				name: teamName.trim(),
+				category: category.trim(),
+				coach: coachName.trim(),
+				email: email.trim(),
+				phone: phone.trim(),
+				registrationDate: new Date().toISOString()
+			};
+			
+			teams = [...teams, newTeam];
+			
+			if (!categories.includes(category.trim())) {
+				categories = [...categories, category.trim()];
 			}
+
+			// Reset form
+			teamName = '';
+			category = '';
+			coachName = '';
+			email = '';
+			phone = '';
+			errors = {
+				teamName: '',
+				category: '',
+				coachName: '',
+				email: '',
+				phone: ''
+			};
+
+			saveTournamentData();
+			alert('Squadra registrata con successo!');
 		} catch (error: unknown) {
-			console.error('Errore di rete:', error);
-			alert('Errore di connessione. Riprova più tardi.');
+			console.error('Errore:', error);
+			alert('Errore durante la registrazione. Riprova più tardi.');
 		} finally {
 			isLoading = false;
 		}
 	}
+
+	// Lifecycle
+	let cleanupListener: (() => void) | undefined;
+
+	onMount(() => {
+		initializeGlobalState();
+		loadTournamentData();
+		cleanupListener = setupStateListener();
+	});
+
+	onDestroy(() => {
+		if (cleanupListener) {
+			cleanupListener();
+		}
+	});
 </script>
 
-<div class="container mt-5">
+<div class="container mt-4">
 	<div class="row justify-content-center">
-		<div class="col-lg-8 col-md-10">
-			<div class="card shadow-lg border-0">
-				<div class="card-header bg-primary text-white text-center py-4">
-					<h1 class="h3 mb-0">
+		<div class="col-lg-8">
+			<div class="card shadow border-0">
+				<div class="card-header bg-primary text-white text-center py-3">
+					<h1 class="h4 mb-0">
 						<i class="fas fa-users me-2"></i>
-						Registrazione Squadra
+						Gestione Torneo Pallavolo
 					</h1>
 				</div>
 				<div class="card-body p-4">
+					<!-- Status del torneo -->
 					{#if teams.length > 0}
-						<div class="alert alert-success mb-4">
-							<i class="fas fa-info-circle me-2"></i>
-							<strong>Squadre registrate: {teams.length}</strong>
-							<br>
-							<small>Fase torneo: {currentPhase === 'registration' ? 'Registrazione' : currentPhase === 'groups' ? 'Gironi' : 'Eliminazione diretta'}</small>
+						<div class="alert alert-info mb-4">
+							<div class="d-flex justify-content-between align-items-center">
+								<div>
+									<i class="fas fa-info-circle me-2"></i>
+									<strong>Squadre: {teams.length}</strong>
+								</div>
+								<div>
+									<span class="badge bg-secondary">
+										{currentPhase === 'registration' ? 'Registrazione' : 
+										 currentPhase === 'groups' ? 'Gironi' : 'Eliminazione diretta'}
+									</span>
+								</div>
+							</div>
 						</div>
 					{/if}
 
+					<!-- Form registrazione -->
 					<form on:submit|preventDefault={handleSubmit} novalidate>
 						<div class="row">
 							<div class="col-md-6 mb-3">
@@ -501,7 +547,6 @@
 								/>
 								{#if errors.teamName}
 									<div class="invalid-feedback">
-										<i class="fas fa-exclamation-circle me-1"></i>
 										{errors.teamName}
 									</div>
 								{/if}
@@ -527,7 +572,6 @@
 								</select>
 								{#if errors.category}
 									<div class="invalid-feedback">
-										<i class="fas fa-exclamation-circle me-1"></i>
 										{errors.category}
 									</div>
 								{/if}
@@ -555,7 +599,6 @@
 							/>
 							{#if errors.coachName}
 								<div class="invalid-feedback">
-									<i class="fas fa-exclamation-circle me-1"></i>
 									{errors.coachName}
 								</div>
 							{/if}
@@ -577,7 +620,6 @@
 								/>
 								{#if errors.email}
 									<div class="invalid-feedback">
-										<i class="fas fa-exclamation-circle me-1"></i>
 										{errors.email}
 									</div>
 								{/if}
@@ -598,7 +640,6 @@
 								/>
 								{#if errors.phone}
 									<div class="invalid-feedback">
-										<i class="fas fa-exclamation-circle me-1"></i>
 										{errors.phone}
 									</div>
 								{/if}
@@ -619,21 +660,20 @@
 									Registra Squadra
 								{:else}
 									<i class="fas fa-exclamation-triangle me-2"></i>
-									Compila tutti i campi obbligatori
+									Compila tutti i campi
 								{/if}
 							</button>
 						</div>
-
-						{#if !isFormValid}
-							<div class="alert alert-info mt-3 d-flex align-items-center">
-								<i class="fas fa-info-circle me-2"></i>
-								<small>Tutti i campi contrassegnati con * sono obbligatori</small>
-							</div>
-						{/if}
 					</form>
 
+					<!-- Controlli torneo -->
 					{#if teams.length >= 4}
-						<div class="mt-4">
+						<div class="mt-4 border-top pt-4">
+							<h5 class="mb-3">
+								<i class="fas fa-cogs me-2"></i>
+								Controlli Torneo
+							</h5>
+							
 							{#if currentPhase === 'registration'}
 								<button 
 									class="btn btn-primary"
@@ -656,10 +696,42 @@
 										on:click={startKnockoutPhase}
 									>
 										<i class="fas fa-trophy me-2"></i>
-										Avvia Fase Eliminatoria
+										Avvia Eliminatorie
 									</button>
 								</div>
 							{/if}
+						</div>
+					{/if}
+
+					<!-- Visualizzazione gironi -->
+					{#if currentPhase === 'groups' && Object.keys(groups).length > 0}
+						<div class="mt-4 border-top pt-4">
+							<h5 class="mb-3">
+								<i class="fas fa-list me-2"></i>
+								Gironi Creati
+							</h5>
+							
+							<div class="row">
+								{#each Object.entries(groups) as [groupName, teamsList]}
+									<div class="col-md-6 mb-3">
+										<div class="card bg-light">
+											<div class="card-header">
+												<h6 class="mb-0">{groupName}</h6>
+											</div>
+											<div class="card-body">
+												<ul class="list-unstyled mb-0">
+													{#each teamsList as teamName}
+														<li class="mb-1">
+															<i class="fas fa-team-circle me-2"></i>
+															{teamName}
+														</li>
+													{/each}
+												</ul>
+											</div>
+										</div>
+									</div>
+								{/each}
+							</div>
 						</div>
 					{/if}
 				</div>
@@ -675,24 +747,13 @@
 
 <style>
 	:global(.card) {
-		border-radius: 15px;
+		border-radius: 12px;
 		overflow: hidden;
 	}
 
 	:global(.card-header) {
 		background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
 		border: none;
-	}
-
-	:global(.form-label) {
-		color: #495057;
-		font-size: 0.95rem;
-	}
-
-	:global(.form-control:focus),
-	:global(.form-select:focus) {
-		border-color: #007bff;
-		box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 	}
 
 	:global(.btn-success) {
@@ -705,31 +766,6 @@
 	:global(.btn-success:hover) {
 		transform: translateY(-2px);
 		box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
-	}
-
-	:global(.btn-secondary) {
-		background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-		border: none;
-		font-weight: 600;
-	}
-
-	:global(.alert-info) {
-		background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
-		border: 1px solid #b6d4da;
-		border-radius: 10px;
-	}
-
-	:global(.is-valid) {
-		border-color: #28a745;
-	}
-
-	:global(.is-invalid) {
-		border-color: #dc3545;
-	}
-
-	:global(.invalid-feedback) {
-		font-size: 0.875rem;
-		font-weight: 500;
 	}
 
 	:global(.card) {
@@ -751,10 +787,6 @@
 		:global(.container) {
 			padding-left: 10px;
 			padding-right: 10px;
-		}
-		
-		:global(.card-body) {
-			padding: 1.5rem !important;
 		}
 	}
 </style>
