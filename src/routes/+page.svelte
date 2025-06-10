@@ -41,6 +41,12 @@
 		timestamp: string;
 	}
 
+	interface TournamentState {
+		data: TournamentData | null;
+		listeners: Set<() => void>;
+		notifyAll: () => void;
+	}
+
 	// Stato globale persistente
 	const STORAGE_KEY = 'tournament_data_persistent';
 	
@@ -68,30 +74,19 @@
 		phone: ''
 	};
 
-	// Estende il tipo Window per includere tournamentState
-	declare global {
-		interface Window {
-			tournamentState?: {
-				data: TournamentData | null;
-				listeners: Set<() => void>;
-				notifyAll: () => void;
-			};
-		}
-	}
-
 	// Gestione stato globale migliorata
 	function initializeGlobalState(): void {
 		if (typeof window !== 'undefined') {
 			// Crea un oggetto globale per la persistenza
-			if (!window.tournamentState) {
-				window.tournamentState = {
+			if (!(window as any).tournamentState) {
+				(window as any).tournamentState = {
 					data: null,
 					listeners: new Set<() => void>(),
 					// Metodo per aggiornare tutti i componenti
 					notifyAll: function() {
 						this.listeners.forEach((listener: () => void) => listener());
 					}
-				};
+				} as TournamentState;
 			}
 		}
 	}
@@ -111,8 +106,8 @@
 		try {
 			// Salva nello stato globale
 			if (typeof window !== 'undefined') {
-				window.tournamentState.data = tournamentData;
-				window.tournamentState.notifyAll();
+				(window as any).tournamentState.data = tournamentData;
+				(window as any).tournamentState.notifyAll();
 			}
 			
 			// Backup in sessionStorage per maggiore persistenza
@@ -131,8 +126,8 @@
 			let loadedData: TournamentData | null = null;
 			
 			// Prova prima dallo stato globale
-			if (typeof window !== 'undefined' && window.tournamentState?.data) {
-				loadedData = window.tournamentState.data;
+			if (typeof window !== 'undefined' && (window as any).tournamentState?.data) {
+				loadedData = (window as any).tournamentState.data;
 			}
 			// Fallback a sessionStorage
 			else if (typeof sessionStorage !== 'undefined') {
@@ -159,16 +154,16 @@
 
 	// Listener per aggiornamenti da altre istanze
 	function setupStateListener(): (() => void) | undefined {
-		if (typeof window !== 'undefined' && window.tournamentState) {
+		if (typeof window !== 'undefined' && (window as any).tournamentState) {
 			const updateListener = (): void => {
 				loadTournamentData();
 			};
-			window.tournamentState.listeners.add(updateListener);
+			(window as any).tournamentState.listeners.add(updateListener);
 			
 			// Cleanup function
 			return (): void => {
-				if (window.tournamentState) {
-					window.tournamentState.listeners.delete(updateListener);
+				if ((window as any).tournamentState) {
+					(window as any).tournamentState.listeners.delete(updateListener);
 				}
 			};
 		}
