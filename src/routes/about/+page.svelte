@@ -311,53 +311,76 @@
 		saveState();
 	}
 
-	function startKnockoutPhase() {
-		qualifiedTeams = {};
-		
-		categories.forEach(category => {
-			qualifiedTeams[category] = [];
-			groupsByCategory[category].forEach(groupName => {
-				const standings = groupStandings[groupName];
-				if (standings && standings.length >= 2) {
-					const qualified = standings.slice(0, 2).map(s => s.team);
-					qualifiedTeams[category] = [...qualifiedTeams[category], ...qualified];
-				}
-			});
 
-			if (qualifiedTeams[category].length < 2) {
-				alert(`Non ci sono abbastanza squadre qualificate per ${category}!`);
-				return;
+function startKnockoutPhase() {
+	qualifiedTeams = {};
+		categories.forEach(category => {
+		qualifiedTeams[category] = [];
+		groupsByCategory[category].forEach(groupName => {
+			const standings = groupStandings[groupName];
+			if (standings && standings.length >= 2) {
+				const qualified = standings.slice(0, 2).map(s => s.team);
+				qualifiedTeams[category] = [...qualifiedTeams[category], ...qualified];
 			}
 		});
 
-		knockoutMatches = [];
-		
-		categories.forEach(category => {
-			const categoryQualified = qualifiedTeams[category];
-			if (categoryQualified.length < 2) return;
+		if (qualifiedTeams[category].length < 2) {
+			alert(`Non ci sono abbastanza squadre qualificate per ${category}!`);
+			return;
+		}
+	});
 
-			const firstPlaces: Team[] = [];
-			const secondPlaces: Team[] = [];
+	knockoutMatches = [];
+	
+	categories.forEach(category => {
+		const categoryQualified = qualifiedTeams[category];
+		if (categoryQualified.length < 2) return;
+		const firstPlaces: Team[] = [];
+		const secondPlaces: Team[] = [];
+		const groupNames = groupsByCategory[category];
 
-			groupsByCategory[category].forEach(groupName => {
-				const standings = groupStandings[groupName];
-				if (standings && standings.length >= 2) {
-					firstPlaces.push(standings[0].team);
-					secondPlaces.push(standings[1].team);
-				}
-			});
+		groupNames.forEach(groupName => {
+			const standings = groupStandings[groupName];
+			if (standings && standings.length >= 2) {
+				firstPlaces.push(standings[0].team); 
+				secondPlaces.push(standings[1].team); 
+			}
+		});
 
-			const shuffledFirsts = [...firstPlaces].sort(() => Math.random() - 0.5);
-			const shuffledSeconds = [...secondPlaces].sort(() => Math.random() - 0.5);
+		let round = 1;
+		let current: Match[] = [];
 
-			let round = 1;
-			let current: Match[] = [];
+		for (let i = 0; i < firstPlaces.length; i++) {
 
-			for (let i = 0; i < Math.min(shuffledFirsts.length, shuffledSeconds.length); i++) {
+			let opponentIndex = (i + 1) % secondPlaces.length;
+			
+			if (secondPlaces.length > 2) {
+				opponentIndex = (i + Math.floor(secondPlaces.length / 2)) % secondPlaces.length;
+			}
+
+			if (firstPlaces[i] && secondPlaces[opponentIndex]) {
 				current.push({
-					id: `ko-${category}-${round}-${i}`, 
-					t1: shuffledFirsts[i], 
-					t2: shuffledSeconds[i],
+					id: `ko-${category}-${round}-${current.length}`, 
+					t1: firstPlaces[i], 
+					t2: secondPlaces[opponentIndex],
+					w: null, 
+					round, 
+					phase: 'knockout', 
+					category, 
+					field: undefined
+				});
+
+				secondPlaces.splice(opponentIndex, 1);
+			}
+		}
+
+		const remainingSeconds = secondPlaces;
+		for (let i = 0; i < remainingSeconds.length; i += 2) {
+			if (remainingSeconds[i + 1]) {
+				current.push({
+					id: `ko-${category}-${round}-${current.length}`, 
+					t1: remainingSeconds[i], 
+					t2: remainingSeconds[i + 1],
 					w: null, 
 					round, 
 					phase: 'knockout', 
@@ -365,51 +388,33 @@
 					field: undefined
 				});
 			}
+		}
 
-			const remaining = categoryQualified.filter(team => 
-				!current.some(match => match.t1 === team || match.t2 === team)
-			);
+		knockoutMatches = [...knockoutMatches, ...current];
 
-			for (let i = 0; i < remaining.length; i += 2) {
-				if (remaining[i + 1]) {
-					current.push({
-						id: `ko-${category}-${round}-${current.length}`, 
-						t1: remaining[i], 
-						t2: remaining[i + 1],
-						w: null, 
-						round, 
-						phase: 'knockout', 
-						category, 
-						field: undefined
-					});
-				}
+		while (current.length > 1) {
+			round++;
+			const next: Match[] = [];
+			for (let i = 0; i < current.length; i += 2) {
+				next.push({ 
+					id: `ko-${category}-${round}-${Math.floor(i/2)}`, 
+					t1: null, 
+					t2: null, 
+					w: null, 
+					round, 
+					phase: 'knockout', 
+					category, 
+					field: undefined
+				});
 			}
+			knockoutMatches = [...knockoutMatches, ...next];
+			current = next;
+		}
+	});
 
-			knockoutMatches = [...knockoutMatches, ...current];
-
-			while (current.length > 1) {
-				round++;
-				const next: Match[] = [];
-				for (let i = 0; i < current.length; i += 2) {
-					next.push({ 
-						id: `ko-${category}-${round}-${i/2}`, 
-						t1: null, 
-						t2: null, 
-						w: null, 
-						round, 
-						phase: 'knockout', 
-						category, 
-						field: undefined
-					});
-				}
-				knockoutMatches = [...knockoutMatches, ...next];
-				current = next;
-			}
-		});
-
-		currentPhase = 'knockout';
-		saveState();
-	}
+	currentPhase = 'knockout';
+	saveState();
+}
 
 	function setKnockoutWinner(id: string, winnerTeam: Team) {
 		knockoutMatches = knockoutMatches.map(m => m.id === id ? { ...m, w: winnerTeam } : m);
