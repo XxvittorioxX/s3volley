@@ -293,27 +293,35 @@
 	<!-- Header -->
 	<div class="row mb-4">
 		<div class="col-12">
-			<div class="bg-light p-4 rounded shadow-sm">
-				<div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
-					<div class="mb-3 mb-md-0">
-						<h1 class="h2 mb-2">Classifiche Gironi - Torneo Volley S3</h1>
-						<p class="text-muted mb-0">
-							Aggiornamento automatico ogni 30s
-							{#if lastUpdateTime}
-								• Ultimo aggiornamento: {lastUpdateTime}
-							{/if}
-						</p>
-					</div>
-					<div class="d-flex gap-2">
-						<button class="btn btn-primary btn-sm" on:click={refreshStandings}>
-							<i class="bi bi-arrow-clockwise"></i> Aggiorna
-						</button>
-						<button class="btn btn-outline-secondary btn-sm" on:click={exportStandings}>
-							<i class="bi bi-download"></i> Esporta
-						</button>
-						<button class="btn btn-outline-secondary btn-sm" on:click={printStandings}>
-							<i class="bi bi-printer"></i> Stampa
-						</button>
+			<div class="card border-0 shadow-lg bg-gradient">
+				<div class="card-header bg-primary text-white border-0 py-4">
+					<div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+						<div class="mb-3 mb-md-0 text-center text-md-start">
+							<h1 class="display-6 fw-bold mb-2">
+								<i class="bi bi-trophy-fill me-2"></i>
+								Classifiche Gironi - Torneo Volley S3
+							</h1>
+							<p class="mb-0 opacity-75">
+								<i class="bi bi-clock me-1"></i>
+								Aggiornamento automatico ogni 30s
+								{#if lastUpdateTime}
+									• Ultimo aggiornamento: <span class="fw-semibold">{lastUpdateTime}</span>
+								{/if}
+							</p>
+						</div>
+						<div class="d-flex flex-column flex-sm-row gap-2">
+							<button class="btn btn-light btn-lg shadow-sm" on:click={refreshStandings}>
+								<i class="bi bi-arrow-clockwise me-2"></i> Aggiorna
+							</button>
+							<div class="btn-group">
+								<button class="btn btn-outline-light" on:click={exportStandings}>
+									<i class="bi bi-download me-1"></i> Esporta
+								</button>
+								<button class="btn btn-outline-light" on:click={printStandings}>
+									<i class="bi bi-printer me-1"></i> Stampa
+								</button>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -321,128 +329,275 @@
 	</div>
 
 	{#if isLoading}
-		<div class="text-center py-5">
-			<div class="spinner-border text-primary" role="status">
-				<span class="visually-hidden">Caricamento...</span>
+		<div class="row justify-content-center">
+			<div class="col-md-6">
+				<div class="card border-0 shadow-sm">
+					<div class="card-body text-center py-5">
+						<div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+							<span class="visually-hidden">Caricamento...</span>
+						</div>
+						<h4 class="text-muted">Caricamento classifiche...</h4>
+						<p class="text-muted mb-0">Attendere prego</p>
+					</div>
+				</div>
 			</div>
-			<p class="mt-2">Caricamento classifiche...</p>
 		</div>
 	{:else if error}
-		<div class="alert alert-danger">
-			<i class="bi bi-exclamation-triangle"></i> {error}
-			<button class="btn btn-outline-danger btn-sm ms-2" on:click={refreshStandings}>
-				<i class="bi bi-arrow-clockwise"></i> Riprova
-			</button>
+		<div class="row justify-content-center">
+			<div class="col-md-8">
+				<div class="alert alert-danger alert-dismissible border-0 shadow-sm" role="alert">
+					<div class="d-flex align-items-center">
+						<i class="bi bi-exclamation-triangle-fill fs-3 me-3"></i>
+						<div class="flex-grow-1">
+							<h5 class="alert-heading mb-1">Errore nel caricamento</h5>
+							<p class="mb-2">{error}</p>
+							<button class="btn btn-outline-danger btn-sm" on:click={refreshStandings}>
+								<i class="bi bi-arrow-clockwise me-1"></i> Riprova
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 	{:else}
 		<div class="row">
 			<div class="col-12">
-
-			{#if Object.keys(groupStandings).length === 0}
-				<div class="alert alert-info">
-					<h5><i class="bi bi-info-circle"></i> Nessuna classifica disponibile</h5>
-					<p class="mb-2">I gironi non sono ancora stati creati o non ci sono dati disponibili.</p>
-					<p class="text-muted mb-0">Assicurati che il torneo principale sia in corso e che i gironi siano stati creati.</p>
-				</div>
-			{:else}
-				{#each categories as category}
-					<div class="mb-5">
-						<!-- Titolo Categoria -->
-						<div class="mb-4">
-							<h3 class="border-bottom pb-2 mb-1">{category}</h3>
-							<p class="text-muted small mb-0">{getCategoryRules(category)}</p>
+				{#if Object.keys(groupStandings).length === 0}
+					<div class="row justify-content-center">
+						<div class="col-md-8">
+							<div class="card border-0 shadow-sm">
+								<div class="card-body text-center py-5">
+									<div class="mb-4">
+										<i class="bi bi-info-circle text-info" style="font-size: 4rem;"></i>
+									</div>
+									<h4 class="card-title text-info mb-3">Nessuna classifica disponibile</h4>
+									<p class="card-text text-muted mb-3">I gironi non sono ancora stati creati o non ci sono dati disponibili.</p>
+									<p class="card-text">
+										<small class="text-muted">Assicurati che il torneo principale sia in corso e che i gironi siano stati creati.</small>
+									</p>
+									<button class="btn btn-primary mt-3" on:click={refreshStandings}>
+										<i class="bi bi-arrow-clockwise me-1"></i> Aggiorna
+									</button>
+								</div>
+							</div>
 						</div>
-
-						<!-- Gironi per categoria -->
-						<div class="row">
-							{#each groupsByCategory[category] || [] as groupName}
-								{@const standings = groupStandings[groupName] || []}
-								<div class="col-lg-6 mb-4">
-									<div class="card border">
-										<div class="card-header bg-primary text-white">
-											<h5 class="mb-0">{groupName.split('_').slice(1).join(' ')}</h5>
+					</div>
+				{:else}
+					{#each categories as category}
+						<div class="mb-5">
+							<!-- Titolo Categoria -->
+							<div class="card border-0 shadow-sm mb-4">
+								<div class="card-header bg-gradient bg-secondary text-white border-0">
+									<div class="d-flex align-items-center justify-content-between">
+										<div>
+											<h3 class="mb-1 fw-bold">
+												<i class="bi bi-people-fill me-2"></i>{category}
+											</h3>
+											<p class="mb-0 opacity-75">
+												<i class="bi bi-gear me-1"></i>{getCategoryRules(category)}
+											</p>
 										</div>
-										<div class="card-body p-0">
-											{#if standings.length > 0}
-												<div class="table-responsive">
-													<table class="table table-sm mb-0">
-														<thead class="table-light">
-															<tr>
-																<th class="text-center" style="width: 40px;">#</th>
-																<th>Squadra</th>
-																<th class="text-center" style="width: 40px;" title="Partite">P</th>
-																<th class="text-center" style="width: 40px;" title="Vittorie">V</th>
-																<th class="text-center" style="width: 40px;" title="Pareggi">N</th>
-																<th class="text-center" style="width: 40px;" title="Sconfitte">S</th>
-																<th class="text-center" style="width: 50px;" title="Punti">Pti</th>
-															</tr>
-														</thead>
-														<tbody>
-															{#each standings as standing, i}
-																<tr class="{i < 2 ? 'table-success' : ''} {standing.played === 0 ? 'table-light' : ''}">
-																	<td class="text-center fw-bold">
-																		{i + 1}
-																		{#if i < 2}
-																			<i class="bi bi-check-circle text-success ms-1"></i>
-																		{/if}
-																	</td>
-																	<td>
-																		<div class="fw-bold">{standing.team.teamName}</div>
-																		<small class="text-muted">{standing.team.coachName}</small>
-																	</td>
-																	<td class="text-center">{standing.played}</td>
-																	<td class="text-center text-success fw-bold">{standing.won}</td>
-																	<td class="text-center text-warning fw-bold">{standing.drawn}</td>
-																	<td class="text-center text-danger fw-bold">{standing.lost}</td>
-																	<td class="text-center fw-bold text-primary">{standing.points}</td>
-																</tr>
-															{/each}
-														</tbody>
-													</table>
-												</div>
-											{:else}
-												<div class="p-3 text-center text-muted">
-													<i class="bi bi-hourglass-split"></i>
-													<p class="mb-0">Nessun dato disponibile</p>
-												</div>
-											{/if}
-										</div>
-										<div class="card-footer text-center bg-light">
-											<small class="text-muted">
-												<i class="bi bi-info-circle"></i> Le prime 2 squadre si qualificano
-											</small>
+										<div class="text-end">
+											<span class="badge bg-light text-dark fs-6">
+												{(groupsByCategory[category] || []).length} gironi
+											</span>
 										</div>
 									</div>
 								</div>
-							{/each}
+							</div>
+
+							<!-- Gironi per categoria -->
+							<div class="row g-4">
+								{#each groupsByCategory[category] || [] as groupName}
+									{@const standings = groupStandings[groupName] || []}
+									<div class="col-xl-6 col-lg-12">
+										<div class="card h-100 border-0 shadow hover-lift">
+											<div class="card-header bg-primary text-white border-0 position-relative">
+												<div class="d-flex align-items-center justify-content-between">
+													<h5 class="mb-0 fw-bold">
+														<i class="bi bi-diagram-3 me-2"></i>
+														{groupName.split('_').slice(1).join(' ')}
+													</h5>
+													<div class="badge bg-light text-primary fs-6">
+														{standings.length} squadre
+													</div>
+												</div>
+												<div class="position-absolute top-0 end-0 p-2">
+													<div class="bg-white bg-opacity-25 rounded-circle p-1">
+														<i class="bi bi-trophy text-white"></i>
+													</div>
+												</div>
+											</div>
+											<div class="card-body p-0">
+												{#if standings.length > 0}
+													<div class="table-responsive">
+														<table class="table table-hover mb-0">
+															<thead class="table-light border-bottom">
+																<tr>
+																	<th class="text-center fw-bold" style="width: 50px;">
+																		<i class="bi bi-hash text-muted"></i>
+																	</th>
+																	<th class="fw-bold">
+																		<i class="bi bi-people me-1 text-muted"></i>Squadra
+																	</th>
+																	<th class="text-center fw-bold" style="width: 50px;" title="Partite">
+																		<i class="bi bi-calendar-event text-muted"></i>
+																	</th>
+																	<th class="text-center fw-bold" style="width: 50px;" title="Vittorie">
+																		<i class="bi bi-check-circle text-success"></i>
+																	</th>
+																	<th class="text-center fw-bold" style="width: 50px;" title="Pareggi">
+																		<i class="bi bi-dash-circle text-warning"></i>
+																	</th>
+																	<th class="text-center fw-bold" style="width: 50px;" title="Sconfitte">
+																		<i class="bi bi-x-circle text-danger"></i>
+																	</th>
+																	<th class="text-center fw-bold" style="width: 60px;" title="Punti">
+																		<i class="bi bi-star-fill text-primary"></i>
+																	</th>
+																</tr>
+															</thead>
+															<tbody>
+																{#each standings as standing, i}
+																	<tr class="position-relative {i < 2 ? 'bg-success bg-opacity-10 border-success border-opacity-25' : ''} {standing.played === 0 ? 'bg-light bg-opacity-50' : ''}">
+																		{#if i < 2}
+																			<div class="position-absolute top-0 start-0 h-100 bg-success" style="width: 4px;"></div>
+																		{/if}
+																		<td class="text-center">
+																			<div class="d-flex align-items-center justify-content-center">
+																				<span class="badge {i === 0 ? 'bg-warning text-dark' : i === 1 ? 'bg-secondary' : 'bg-light text-dark'} rounded-pill fs-6 fw-bold">
+																					{i + 1}
+																				</span>
+																				{#if i < 2}
+																					<i class="bi bi-arrow-up-circle-fill text-success ms-1"></i>
+																				{/if}
+																			</div>
+																		</td>
+																		<td class="py-3">
+																			<div class="d-flex align-items-center">
+																				<div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+																					<i class="bi bi-people text-white"></i>
+																				</div>
+																				<div>
+																					<div class="fw-bold text-dark">{standing.team.teamName}</div>
+																					<small class="text-muted">
+																						<i class="bi bi-person me-1"></i>{standing.team.coachName}
+																					</small>
+																				</div>
+																			</div>
+																		</td>
+																		<td class="text-center py-3">
+																			<span class="badge bg-light text-dark rounded-pill">{standing.played}</span>
+																		</td>
+																		<td class="text-center py-3">
+																			<span class="badge bg-success rounded-pill fw-bold">{standing.won}</span>
+																		</td>
+																		<td class="text-center py-3">
+																			<span class="badge bg-warning text-dark rounded-pill fw-bold">{standing.drawn}</span>
+																		</td>
+																		<td class="text-center py-3">
+																			<span class="badge bg-danger rounded-pill fw-bold">{standing.lost}</span>
+																		</td>
+																		<td class="text-center py-3">
+																			<span class="badge bg-primary rounded-pill fs-6 fw-bold">{standing.points}</span>
+																		</td>
+																	</tr>
+																{/each}
+															</tbody>
+														</table>
+													</div>
+												{:else}
+													<div class="p-5 text-center">
+														<i class="bi bi-hourglass-split text-muted mb-3" style="font-size: 3rem;"></i>
+														<h6 class="text-muted">Nessun dato disponibile</h6>
+														<p class="text-muted small mb-0">Le partite non sono ancora iniziate</p>
+													</div>
+												{/if}
+											</div>
+											<div class="card-footer bg-light border-0 text-center">
+												<small class="text-muted d-flex align-items-center justify-content-center">
+													<i class="bi bi-info-circle me-1"></i>
+													<span class="fw-semibold">Le prime 2 squadre si qualificano</span>
+													<i class="bi bi-arrow-up-circle text-success ms-1"></i>
+												</small>
+											</div>
+										</div>
+									</div>
+								{/each}
+							</div>
 						</div>
-					</div>
-				{/each}
-			{/if}
+					{/each}
+				{/if}
+			</div>
 		</div>
 	{/if}
 </div>
 
 <style>
-	.card {
-		transition: box-shadow 0.15s ease-in-out;
+	.bg-gradient {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	}
 	
-	.card:hover {
-		box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+	.hover-lift {
+		transition: all 0.3s ease;
+	}
+	
+	.hover-lift:hover {
+		transform: translateY(-5px);
+		box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
+	}
+	
+	.card {
+		transition: all 0.15s ease-in-out;
+		border-radius: 15px;
+		overflow: hidden;
+	}
+	
+	.card-header {
+		border-radius: 15px 15px 0 0 !important;
 	}
 	
 	.table th {
 		font-weight: 600;
 		border-bottom: 2px solid #dee2e6;
+		background-color: rgba(248, 249, 250, 0.8);
+		padding: 1rem 0.75rem;
 	}
 	
 	.table td {
 		vertical-align: middle;
+		border-color: rgba(0, 0, 0, 0.05);
 	}
 	
-	.table-success {
-		background-color: rgba(25, 135, 84, 0.1);
+	.table-hover tbody tr:hover {
+		background-color: rgba(0, 123, 255, 0.05);
+	}
+	
+	.badge {
+		font-size: 0.75rem;
+	}
+	
+	.spinner-border {
+		animation: spinner-border 0.75s linear infinite;
+	}
+	
+	@keyframes pulse {
+		0% { opacity: 1; }
+		50% { opacity: 0.5; }
+		100% { opacity: 1; }
+	}
+	
+	.bg-success.bg-opacity-10 {
+		animation: pulse 2s infinite;
+	}
+	
+	.btn {
+		border-radius: 10px;
+		transition: all 0.2s ease;
+	}
+	
+	.btn:hover {
+		transform: translateY(-2px);
 	}
 	
 	@media (max-width: 768px) {
@@ -453,26 +608,55 @@
 		
 		.table th, .table td {
 			font-size: 0.85rem;
-			padding: 0.5rem 0.25rem;
+			padding: 0.75rem 0.5rem;
 		}
 		
 		.container {
 			padding: 0.5rem;
 		}
+		
+		.card {
+			border-radius: 10px;
+		}
+		
+		.display-6 {
+			font-size: 1.5rem;
+		}
+	}
+	
+	@media (max-width: 576px) {
+		.table th, .table td {
+			font-size: 0.8rem;
+			padding: 0.5rem 0.25rem;
+		}
+		
+		.badge {
+			font-size: 0.7rem;
+		}
 	}
 	
 	@media print {
-		.btn, .alert {
+		.btn, .alert, .card-header .badge {
 			display: none;
 		}
 		
 		.card {
 			break-inside: avoid;
 			margin-bottom: 1rem;
+			box-shadow: none !important;
+			border: 1px solid #dee2e6 !important;
 		}
 		
-		.bg-light {
+		.bg-light, .bg-gradient {
 			background-color: transparent !important;
+		}
+		
+		.text-white {
+			color: #000 !important;
+		}
+		
+		.hover-lift:hover {
+			transform: none;
 		}
 	}
 </style>
