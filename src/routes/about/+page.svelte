@@ -121,8 +121,8 @@
 
 	function getScoreRules(category: string) {
 		const rules: Record<string, { maxScore: number }> = {
-			'S1': { maxScore: 15 },
-			'S2': { maxScore: 15 },
+			'S1': { maxScore: 8 },
+			'S2': { maxScore: 10 },
 			'S3': { maxScore: 15 },
 			'Under 12': { maxScore: 15 },
 			'Seniores': { maxScore: 25 }
