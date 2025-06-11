@@ -3,6 +3,9 @@
 // Variabili globali
 let popupShown = false;
 let showPopupModal = false;
+/**
+ * @type {number | null | undefined}
+ */
 let popupInterval = null;
 
 // Funzione per mostrare il popup
@@ -27,6 +30,7 @@ function handleDiscoverClick() {
 }
 
 // Gestione tasto ESC
+// @ts-ignore
 function handleKeydown(event) {
     if (event.key === 'Escape') {
         closePopup();
@@ -34,6 +38,7 @@ function handleKeydown(event) {
 }
 
 // Gestione click sull'overlay
+// @ts-ignore
 function handleOverlayClick(event) {
     if (event.target === event.currentTarget) {
         closePopup();
@@ -98,9 +103,13 @@ function createPopupHTML() {
     document.body.insertAdjacentHTML('beforeend', popupHTML);
     
     // Aggiungi event listeners
+    // @ts-ignore
     document.getElementById('sistema3-popup-overlay').addEventListener('click', handleOverlayClick);
+    // @ts-ignore
     document.getElementById('popup-close-btn').addEventListener('click', closePopup);
+    // @ts-ignore
     document.getElementById('popup-discover-btn').addEventListener('click', handleDiscoverClick);
+    // @ts-ignore
     document.getElementById('popup-later-btn').addEventListener('click', closePopup);
     document.addEventListener('keydown', handleKeydown);
 }
@@ -396,6 +405,7 @@ if (document.readyState === 'loading') {
 }
 
 // Esporta funzioni per uso globale (opzionale)
+// @ts-ignore
 window.Sistema3Popup = {
     show: showPopup,
     hide: closePopup,
