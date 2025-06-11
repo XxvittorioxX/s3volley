@@ -274,7 +274,6 @@
 					<h1 class="display-5 fw-bold mb-2">
 						<span class="me-3">🏆</span>
 						<Tournament Standings>
-					</h1>
 					<p class="lead mb-2">Volley S3 Championship • Group Phase</p>
 					{#if lastUpdateTime}
 						<small class="text-white-50">
