@@ -1,9 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-import { writable } from 'svelte/store';
 
-export const showPopup = writable(false);
-export const popupShown = writable(false);
 	interface Team {
 		id?: string;
 		teamName: string;
