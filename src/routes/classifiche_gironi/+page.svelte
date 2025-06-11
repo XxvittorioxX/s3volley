@@ -273,7 +273,7 @@
 				<div class="col-lg-8">
 					<h1 class="display-5 fw-bold mb-2">
 						<span class="me-3">🏆</span>
-						Tournament Standings
+						<Tournament Standings>
 					</h1>
 					<p class="lead mb-2">Volley S3 Championship • Group Phase</p>
 					{#if lastUpdateTime}
@@ -596,7 +596,6 @@
             50% { transform: rotate(12deg) scale(1.1); }
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
@@ -631,13 +630,10 @@
         </aside>
 
     <script>
-        // Aggiungi tracking dei click (opzionale)
         document.querySelector('.sistema3-banner').addEventListener('click', function() {
-            // Qui puoi aggiungere codice di analytics
             console.log('Click su banner Sistema3');
         });
 
-        // Animazione di entrata al caricamento
         window.addEventListener('load', function() {
             const banner = document.querySelector('.sistema3-banner');
             banner.style.opacity = '0';
