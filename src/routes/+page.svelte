@@ -367,6 +367,8 @@
 			isLoading = false;
 		}
 	}
+
+	
 </script>
 
 <div class="container mt-5">
@@ -535,7 +537,6 @@
 		</div>
 	</div>
 </div>
-
 <script>
 	import { onMount } from 'svelte';
 	
@@ -590,7 +591,7 @@
 
 	// Inizializzazione quando il componente è montato
 	onMount(() => {
-		// Mostra popup dopo 3 secondi
+		// Mostra popup dopo 3 secondi dal caricamento del sito
 		setTimeout(showAutoPopup, 3000);
 		
 		// Mostra popup ogni 10 minuti (600000 ms)
@@ -614,11 +615,10 @@
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </svelte:head>
 
-<div class="demo-content">
-	<h1>Demo Popup Sistema3</h1>
-	<p>Clicca il pulsante per testare il popup. Il popup apparirà anche automaticamente dopo 3 secondi.</p>
-	<button class="demo-btn" on:click={showPopup}>Mostra Popup</button>
-</div>
+<!-- Contenuto principale del sito -->
+<main class="main-content">
+	<!-- Il tuo contenuto del sito va qui -->
+</main>
 
 {#if showPopupModal}
 	<div class="popup-overlay show" on:click={handleOverlayClick} role="dialog" aria-modal="true">
@@ -665,8 +665,14 @@
 	:global(body) {
 		font-family: Arial, sans-serif;
 		margin: 0;
-		padding: 20px;
+		padding: 0;
 		background: #f5f5f5;
+	}
+
+	/* Contenuto principale */
+	.main-content {
+		min-height: 100vh;
+		padding: 20px;
 	}
 
 	/* Overlay del popup */
@@ -881,39 +887,6 @@
 		0%, 20%, 50%, 80%, 100% { transform: rotate(12deg) translateY(0); }
 		40% { transform: rotate(12deg) translateY(-10px); }
 		60% { transform: rotate(12deg) translateY(-5px); }
-	}
-
-	/* Demo button */
-	.demo-btn {
-		background: #3b82f6;
-		color: white;
-		border: none;
-		padding: 15px 30px;
-		border-radius: 8px;
-		font-size: 16px;
-		cursor: pointer;
-		margin: 20px;
-		transition: background 0.3s ease;
-	}
-
-	.demo-btn:hover {
-		background: #2563eb;
-	}
-
-	/* Contenuto demo */
-	.demo-content {
-		text-align: center;
-		padding: 50px 20px;
-	}
-
-	.demo-content h1 {
-		color: #1e3a8a;
-		margin-bottom: 20px;
-	}
-
-	.demo-content p {
-		color: #6b7280;
-		margin-bottom: 30px;
 	}
 
 	/* Responsive */
