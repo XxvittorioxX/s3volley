@@ -260,7 +260,7 @@
 </script>
 
 <svelte:head>
-	<title>Tournament Standings | Volley S3 Championship</title>
+	<title>Classifiche Torneo | Volley S3 Championship</title>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -273,13 +273,13 @@
 				<div class="col-lg-8">
 					<h1 class="display-5 fw-bold mb-2">
 						<span class="me-3">🏆</span>
-						<Tournament Standings>
+						Classifiche Torneo
 					</h1>
-					<p class="lead mb-2">Volley S3 Championship • Group Phase</p>
+					<p class="lead mb-2">Campionato Volley S3 • Fase a Gironi</p>
 					{#if lastUpdateTime}
 						<small class="text-white-50">
 							<span class="badge bg-success me-2">Live</span>
-							Last updated: {lastUpdateTime} • Auto-refresh every 30s
+							Ultimo aggiornamento: {lastUpdateTime} • Aggiornamento automatico ogni 30s
 						</small>
 					{/if}
 				</div>
@@ -287,15 +287,15 @@
 					<div class="btn-group" role="group">
 						<button class="btn btn-light" on:click={refreshStandings}>
 							<i class="bi bi-arrow-clockwise me-1"></i>
-							Refresh
+							Aggiorna
 						</button>
 						<button class="btn btn-outline-light" on:click={exportStandings}>
 							<i class="bi bi-download me-1"></i>
-							Export
+							Esporta
 						</button>
 						<button class="btn btn-outline-light" on:click={printStandings}>
 							<i class="bi bi-printer me-1"></i>
-							Print
+							Stampa
 						</button>
 					</div>
 				</div>
@@ -311,10 +311,10 @@
 						<div class="card text-center py-5">
 							<div class="card-body">
 								<div class="spinner-border text-primary mb-3" role="status">
-									<span class="visually-hidden">Loading...</span>
+									<span class="visually-hidden">Caricamento...</span>
 								</div>
-								<h3 class="card-title">Loading Tournament Data</h3>
-								<p class="card-text text-muted">Please wait while we fetch the latest standings...</p>
+								<h3 class="card-title">Caricamento Dati Torneo</h3>
+								<p class="card-text text-muted">Attendere mentre carichiamo le ultime classifiche...</p>
 							</div>
 						</div>
 					</div>
@@ -327,11 +327,11 @@
 								<div class="text-warning mb-3">
 									<i class="bi bi-exclamation-triangle" style="font-size: 3rem;"></i>
 								</div>
-								<h3 class="card-title">Unable to Load Data</h3>
+								<h3 class="card-title">Impossibile Caricare i Dati</h3>
 								<p class="card-text text-muted">{error}</p>
 								<button class="btn btn-primary" on:click={refreshStandings}>
 									<i class="bi bi-arrow-clockwise me-1"></i>
-									Retry
+									Riprova
 								</button>
 							</div>
 						</div>
@@ -345,11 +345,11 @@
 								<div class="text-info mb-3">
 									<i class="bi bi-bar-chart" style="font-size: 3rem;"></i>
 								</div>
-								<h3 class="card-title">No Standings Available</h3>
-								<p class="card-text text-muted">Tournament groups have not been created yet or no match data is available.</p>
+								<h3 class="card-title">Nessuna Classifica Disponibile</h3>
+								<p class="card-text text-muted">I gironi del torneo non sono ancora stati creati o non ci sono dati delle partite disponibili.</p>
 								<button class="btn btn-primary" on:click={refreshStandings}>
 									<i class="bi bi-arrow-clockwise me-1"></i>
-									Check Again
+									Controlla di Nuovo
 								</button>
 							</div>
 						</div>
@@ -366,7 +366,7 @@
 										<p class="card-text mb-0 opacity-75">{getCategoryRules(category)}</p>
 									</div>
 									<div class="col-auto">
-										<span class="badge bg-light text-dark">{(groupsByCategory[category] || []).length} Groups</span>
+										<span class="badge bg-light text-dark">{(groupsByCategory[category] || []).length} Gironi</span>
 									</div>
 								</div>
 							</div>
@@ -380,7 +380,7 @@
 										<div class="card-header bg-info text-white">
 											<div class="d-flex justify-content-between align-items-center">
 												<h5 class="card-title mb-0">{groupName.split('_').slice(1).join(' ')}</h5>
-												<span class="badge bg-light text-dark">{standings.length} Teams</span>
+												<span class="badge bg-light text-dark">{standings.length} Squadre</span>
 											</div>
 										</div>
 										
@@ -391,12 +391,12 @@
 														<thead class="table-light">
 															<tr>
 																<th style="width: 60px;">Pos</th>
-																<th>Team</th>
-																<th class="text-center" style="width: 50px;">MP</th>
-																<th class="text-center" style="width: 50px;">W</th>
-																<th class="text-center" style="width: 50px;">D</th>
-																<th class="text-center" style="width: 50px;">L</th>
-																<th class="text-center" style="width: 60px;">Pts</th>
+																<th>Squadra</th>
+																<th class="text-center" style="width: 50px;">PG</th>
+																<th class="text-center" style="width: 50px;">V</th>
+																<th class="text-center" style="width: 50px;">P</th>
+																<th class="text-center" style="width: 50px;">S</th>
+																<th class="text-center" style="width: 60px;">Pti</th>
 															</tr>
 														</thead>
 														<tbody>
@@ -437,7 +437,7 @@
 													<div class="text-muted mb-3">
 														<i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
 													</div>
-													<p class="text-muted mb-0">No match data available</p>
+													<p class="text-muted mb-0">Nessun dato partita disponibile</p>
 												</div>
 											{/if}
 										</div>
@@ -445,7 +445,7 @@
 										<div class="card-footer bg-light">
 											<small class="text-muted">
 												<span class="badge bg-success me-2"></span>
-												Top 2 teams qualify for knockout phase
+												Le prime 2 squadre si qualificano per la fase ad eliminazione diretta
 											</small>
 										</div>
 									</div>
@@ -458,196 +458,7 @@
 		</div>
 	</main>
 </div>
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Banner Sistema3</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: #f5f5f5;
-        }
 
-        .sidebar {
-            width: 300px;
-            margin: 0 auto;
-        }
-
-        .sistema3-banner {
-            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-            border-radius: 12px;
-            padding: 25px;
-            color: white;
-            text-align: center;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            text-decoration: none;
-            display: block;
-        }
-
-        .sistema3-banner:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
-        }
-
-        .sistema3-banner::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-            transform: rotate(45deg);
-            transition: all 0.6s;
-            opacity: 0;
-        }
-
-        .sistema3-banner:hover::before {
-            animation: shine 0.6s ease-in-out;
-        }
-
-        @keyframes shine {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); opacity: 1; }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); opacity: 0; }
-        }
-
-        .banner-logo {
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .banner-subtitle {
-            font-size: 14px;
-            opacity: 0.9;
-            margin-bottom: 15px;
-            line-height: 1.4;
-        }
-
-        .banner-features {
-            list-style: none;
-            padding: 0;
-            margin: 15px 0;
-        }
-
-        .banner-features li {
-            font-size: 12px;
-            margin: 8px 0;
-            opacity: 0.95;
-            position: relative;
-            padding-left: 20px;
-        }
-
-        .banner-features li::before {
-            content: '✓';
-            position: absolute;
-            left: 0;
-            color: #4ade80;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .banner-cta {
-            background: rgba(255,255,255,0.2);
-            border: 2px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 25px;
-            font-size: 14px;
-            font-weight: bold;
-            margin-top: 15px;
-            transition: all 0.3s ease;
-            display: inline-block;
-            backdrop-filter: blur(10px);
-        }
-
-        .banner-cta:hover {
-            background: rgba(255,255,255,0.3);
-            border-color: rgba(255,255,255,0.5);
-            transform: scale(1.05);
-        }
-
-        .promo-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #ff4757;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: bold;
-            transform: rotate(12deg);
-            box-shadow: 0 4px 12px rgba(255,71,87,0.4);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: rotate(12deg) scale(1); }
-            50% { transform: rotate(12deg) scale(1.1); }
-        }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                max-width: 350px;
-            }
-            
-            .sistema3-banner {
-                padding: 20px;
-            }
-        }
-
-
-    </style>
-</head>
-<body>
-    <aside class="sidebar">
-            <a href="https://sistema3.it" class="sistema3-banner" target="_blank">
-                <div class="promo-badge">NUOVO!</div>
-                
-                <div class="banner-logo">SISTEMA3</div>
-                <div class="banner-subtitle">La Soluzione Digitale Completa</div>
-                
-                <ul class="banner-features">
-                    <li>Sviluppo Web Professionale</li>
-                    <li>Design Moderno & Responsive</li>
-                    <li>SEO Ottimizzato</li>
-                    <li>Supporto Dedicato 24/7</li>
-                </ul>
-                
-                <div class="banner-cta">Scopri di Più →</div>
-            </a>
-        </aside>
-
-    <script>
-        document.querySelector('.sistema3-banner').addEventListener('click', function() {
-            console.log('Click su banner Sistema3');
-        });
-
-        window.addEventListener('load', function() {
-            const banner = document.querySelector('.sistema3-banner');
-            banner.style.opacity = '0';
-            banner.style.transform = 'translateY(30px)';
-            
-            setTimeout(() => {
-                banner.style.transition = 'all 0.8s ease';
-                banner.style.opacity = '1';
-                banner.style.transform = 'translateY(0)';
-            }, 500);
-        });
-    </script>
-</body>
-</html>
 <style>
 	:global(body) {
 		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
