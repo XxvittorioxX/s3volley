@@ -125,7 +125,7 @@
 								<span class="badge rounded-pill {config.isTimeBased ? 'bg-info' : 'bg-success'}">
 									{config.isTimeBased
 										? '⏱️ A Tempo'
-										: '🏐 A Punti'}
+										: '🏐 A Punti'}      
 								</span>
 							</td>
 							<td>

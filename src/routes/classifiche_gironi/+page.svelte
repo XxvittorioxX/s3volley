@@ -57,18 +57,23 @@
 	let groupsByCategory: { [category: string]: string[] } = {};
 	let isLoading = true;
 	let error = '';
+	let lastUpdateTime = '';
 
 	onMount(() => {
 		loadTournamentData();
 		// Auto-refresh ogni 30 secondi
-		const interval = setInterval(loadTournamentData, 30000);
+		const interval = setInterval(() => {
+			loadTournamentData(true); // Passa true per indicare che è un refresh automatico
+		}, 30000);
 		return () => clearInterval(interval);
 	});
 
 	// Carica i dati del torneo dal localStorage o da un'API
-	async function loadTournamentData() {
+	async function loadTournamentData(isAutoRefresh = false) {
 		try {
-			isLoading = true;
+			if (!isAutoRefresh) {
+				isLoading = true;
+			}
 			error = '';
 
 			// Prova a caricare dal localStorage
@@ -84,6 +89,9 @@
 				
 				// Ricalcola le classifiche
 				recalculateAllStandings();
+				
+				// Aggiorna timestamp
+				lastUpdateTime = new Date().toLocaleTimeString('it-IT');
 			} else {
 				// Se non ci sono dati salvati, prova a caricare le squadre dall'API
 				await loadTeamsFromAPI();
@@ -92,7 +100,9 @@
 			error = err instanceof Error ? err.message : 'Errore nel caricamento dati';
 			console.error('Errore caricamento dati torneo:', err);
 		} finally {
-			isLoading = false;
+			if (!isAutoRefresh) {
+				isLoading = false;
+			}
 		}
 	}
 
@@ -277,7 +287,6 @@
 	<title>Classifiche Gironi - Torneo Volley S3</title>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet" />
-	<meta http-equiv="refresh" content="60" />
 </svelte:head>
 
 <div class="container-fluid my-4">
@@ -315,6 +324,9 @@
 				<div class="text-center mb-3">
 					<small class="text-muted">
 						<i class="bi bi-clock"></i> Aggiornamento automatico ogni 30s
+						{#if lastUpdateTime}
+							- Ultimo aggiornamento: {lastUpdateTime}
+						{/if}
 					</small>
 				</div>
 
@@ -389,7 +401,7 @@
 																		<td class="fw-bold text-primary fs-5">{standing.points}</td>
 																	</tr>
 																{/each}
-															</tbody>
+															</tbody>      
 														</table>
 													</div>
 												{:else}
