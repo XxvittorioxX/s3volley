@@ -458,7 +458,6 @@
 		</div>
 	</main>
 </div>
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -479,7 +478,7 @@
         }
 
         .sistema3-banner {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
             border-radius: 12px;
             padding: 25px;
             color: white;
@@ -609,42 +608,11 @@
             }
         }
 
-        /* Demo container */
-        .demo-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            gap: 30px;
-            align-items: flex-start;
-        }
 
-        .main-content {
-            flex: 1;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .demo-text {
-            color: #666;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .demo-container {
-                flex-direction: column;
-            }
-        }
     </style>
 </head>
 <body>
-    <div class="demo-container">
-        <div class="main-content">
-        </div>
-
-        <aside class="sidebar">
+    <aside class="sidebar">
             <a href="https://sistema3.it" class="sistema3-banner" target="_blank">
                 <div class="promo-badge">NUOVO!</div>
                 
@@ -661,7 +629,6 @@
                 <div class="banner-cta">Scopri di Più →</div>
             </a>
         </aside>
-    </div>
 
     <script>
         // Aggiungi tracking dei click (opzionale)
@@ -685,7 +652,6 @@
     </script>
 </body>
 </html>
-
 <style>
 	:global(body) {
 		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
