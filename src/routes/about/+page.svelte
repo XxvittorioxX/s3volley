@@ -1,4 +1,3 @@
-
 <script lang="ts">
 	import { onMount } from 'svelte';
 
@@ -50,7 +49,6 @@
 
 	const fields = Array.from({ length: 20 }, (_, i) => i + 1);
 
-	// Salvataggio e caricamento stato
 	function saveState() {
 		const state = {
 			teams, groupMatches, knockoutMatches, groupStandings, groups, 
@@ -121,41 +119,28 @@
 		}
 	});
 
-	// Regole punteggio Volley S3 specifiche per categoria - FIXED
 	function getScoreRules(category: string) {
-		const rules: Record<string, { maxScore: number; minAdvantage: number }> = {
-			'S1': { maxScore: 15, minAdvantage: 2 },
-			'S2': { maxScore: 15, minAdvantage: 2 },
-			'S3': { maxScore: 15, minAdvantage: 2 },
-			'Under 12': { maxScore: 15, minAdvantage: 2 },
-			'Seniores': { maxScore: 25, minAdvantage: 2 }
+		const rules: Record<string, { maxScore: number }> = {
+			'S1': { maxScore: 15 },
+			'S2': { maxScore: 15 },
+			'S3': { maxScore: 15 },
+			'Under 12': { maxScore: 15 },
+			'Seniores': { maxScore: 25 }
 		};
-		return rules[category] || { maxScore: 15, minAdvantage: 2 };
+		return rules[category] || { maxScore: 15 };
 	}
 
 	function isValidScore(score1: number, score2: number, category: string): boolean {
-		const { maxScore, minAdvantage } = getScoreRules(category);
-		const minScore = Math.min(score1, score2);
+		const { maxScore } = getScoreRules(category);
 		const maxScore_match = Math.max(score1, score2);
 		const scoreDiff = Math.abs(score1 - score2);
 
-		// Vittoria al punteggio base con almeno 1 punto di vantaggio
-		if (maxScore_match === maxScore && minScore < maxScore) {
-			return scoreDiff >= 1;
-		}
-		
-		// Oltre il punteggio base serve vantaggio minimo
-		if (minScore >= maxScore) {
-			return scoreDiff >= minAdvantage;
-		}
-		
-		// Non è possibile vincere sotto il punteggio base
-		return false;
+		return maxScore_match >= maxScore && scoreDiff >= 1;
 	}
 
 	function getCategoryRules(category: string): string {
-		const { maxScore, minAdvantage } = getScoreRules(category);
-		return `Si vince a ${maxScore} punti. In parità da ${maxScore}-${maxScore}, serve vantaggio di ${minAdvantage}`;
+		const { maxScore } = getScoreRules(category);
+		return `Si vince a ${maxScore} punti con almeno 1 punto di vantaggio`;
 	}
 
 	function initTempScore(matchId: string) {
@@ -282,8 +267,8 @@
 		if (!match || !match.t1 || !match.t2 || !match.group || !match.category) return;
 
 		if (!isValidScore(score1, score2, match.category)) {
-			const { maxScore, minAdvantage } = getScoreRules(match.category);
-			alert(`Punteggio non valido per ${match.category}!\n${getCategoryRules(match.category)}\n\nEsempi validi:\n- ${maxScore}-${maxScore-2}\n- ${maxScore+minAdvantage}-${maxScore}`);
+			const { maxScore } = getScoreRules(match.category);
+			alert(`Punteggio non valido per ${match.category}!\n${getCategoryRules(match.category)}\n\nEsempio valido: ${maxScore}-${maxScore-1}`);
 			return;
 		}
 
