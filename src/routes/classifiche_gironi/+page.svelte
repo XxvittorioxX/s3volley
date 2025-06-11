@@ -459,6 +459,233 @@
 	</main>
 </div>
 
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banner Sistema3</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .sidebar {
+            width: 300px;
+            margin: 0 auto;
+        }
+
+        .sistema3-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 25px;
+            color: white;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            display: block;
+        }
+
+        .sistema3-banner:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        }
+
+        .sistema3-banner::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.6s;
+            opacity: 0;
+        }
+
+        .sistema3-banner:hover::before {
+            animation: shine 0.6s ease-in-out;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); opacity: 1; }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); opacity: 0; }
+        }
+
+        .banner-logo {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .banner-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .banner-features {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+        }
+
+        .banner-features li {
+            font-size: 12px;
+            margin: 8px 0;
+            opacity: 0.95;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .banner-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #4ade80;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .banner-cta {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+            display: inline-block;
+            backdrop-filter: blur(10px);
+        }
+
+        .banner-cta:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+            transform: scale(1.05);
+        }
+
+        .promo-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff4757;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            transform: rotate(12deg);
+            box-shadow: 0 4px 12px rgba(255,71,87,0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: rotate(12deg) scale(1); }
+            50% { transform: rotate(12deg) scale(1.1); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                max-width: 350px;
+            }
+            
+            .sistema3-banner {
+                padding: 20px;
+            }
+        }
+
+        /* Demo container */
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .main-content {
+            flex: 1;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .demo-text {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .demo-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="main-content">
+        </div>
+
+        <aside class="sidebar">
+            <a href="https://sistema3.it" class="sistema3-banner" target="_blank">
+                <div class="promo-badge">NUOVO!</div>
+                
+                <div class="banner-logo">SISTEMA3</div>
+                <div class="banner-subtitle">La Soluzione Digitale Completa</div>
+                
+                <ul class="banner-features">
+                    <li>Sviluppo Web Professionale</li>
+                    <li>Design Moderno & Responsive</li>
+                    <li>SEO Ottimizzato</li>
+                    <li>Supporto Dedicato 24/7</li>
+                </ul>
+                
+                <div class="banner-cta">Scopri di Più →</div>
+            </a>
+        </aside>
+    </div>
+
+    <script>
+        // Aggiungi tracking dei click (opzionale)
+        document.querySelector('.sistema3-banner').addEventListener('click', function() {
+            // Qui puoi aggiungere codice di analytics
+            console.log('Click su banner Sistema3');
+        });
+
+        // Animazione di entrata al caricamento
+        window.addEventListener('load', function() {
+            const banner = document.querySelector('.sistema3-banner');
+            banner.style.opacity = '0';
+            banner.style.transform = 'translateY(30px)';
+            
+            setTimeout(() => {
+                banner.style.transition = 'all 0.8s ease';
+                banner.style.opacity = '1';
+                banner.style.transform = 'translateY(0)';
+            }, 500);
+        });
+    </script>
+</body>
+</html>
+
 <style>
 	:global(body) {
 		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
