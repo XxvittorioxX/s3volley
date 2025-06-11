@@ -289,7 +289,37 @@
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet" />
 </svelte:head>
 
-<div class="container-fluid my-4">
+<div class="container my-4">
+	<!-- Header -->
+	<div class="row mb-4">
+		<div class="col-12">
+			<div class="bg-light p-4 rounded shadow-sm">
+				<div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+					<div class="mb-3 mb-md-0">
+						<h1 class="h2 mb-2">Classifiche Gironi - Torneo Volley S3</h1>
+						<p class="text-muted mb-0">
+							Aggiornamento automatico ogni 30s
+							{#if lastUpdateTime}
+								• Ultimo aggiornamento: {lastUpdateTime}
+							{/if}
+						</p>
+					</div>
+					<div class="d-flex gap-2">
+						<button class="btn btn-primary btn-sm" on:click={refreshStandings}>
+							<i class="bi bi-arrow-clockwise"></i> Aggiorna
+						</button>
+						<button class="btn btn-outline-secondary btn-sm" on:click={exportStandings}>
+							<i class="bi bi-download"></i> Esporta
+						</button>
+						<button class="btn btn-outline-secondary btn-sm" on:click={printStandings}>
+							<i class="bi bi-printer"></i> Stampa
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	{#if isLoading}
 		<div class="text-center py-5">
 			<div class="spinner-border text-primary" role="status">
@@ -307,182 +337,142 @@
 	{:else}
 		<div class="row">
 			<div class="col-12">
-				<div class="d-flex justify-content-between align-items-center mb-4">
-					<h1 class="text-primary">🏐 Classifiche Gironi - Torneo Volley S3</h1>
-					<div class="btn-group">
-						<button class="btn btn-outline-primary btn-sm" on:click={refreshStandings}>
-							<i class="bi bi-arrow-clockwise"></i> Aggiorna
-						</button>
-						<button class="btn btn-outline-secondary btn-sm" on:click={exportStandings}>
-							<i class="bi bi-download"></i> Esporta
-						</button>
-						<button class="btn btn-outline-secondary btn-sm" on:click={printStandings}>
-							<i class="bi bi-printer"></i> Stampa
-						</button>
-					</div>
-				</div>
-				<div class="text-center mb-3">
-					<small class="text-muted">
-						<i class="bi bi-clock"></i> Aggiornamento automatico ogni 30s
-						{#if lastUpdateTime}
-							- Ultimo aggiornamento: {lastUpdateTime}
-						{/if}
-					</small>
-				</div>
 
-				{#if Object.keys(groupStandings).length === 0}
-					<div class="alert alert-info text-center">
-						<h4><i class="bi bi-info-circle"></i> Nessuna classifica disponibile</h4>
-						<p>I gironi non sono ancora stati creati o non ci sono dati disponibili.</p>
-						<p class="text-muted">Assicurati che il torneo principale sia in corso e che i gironi siano stati creati.</p>
-					</div>
-				{:else}
-					{#each categories as category}
-						<div class="mb-5">
-							<div class="row mb-3">
-								<div class="col-12">
-									<h2 class="text-primary border-bottom pb-2">
-										🏆 {category}
-										<small class="text-muted fs-6 ms-3">{getCategoryRules(category)}</small>
-									</h2>
-								</div>
-							</div>
+			{#if Object.keys(groupStandings).length === 0}
+				<div class="alert alert-info">
+					<h5><i class="bi bi-info-circle"></i> Nessuna classifica disponibile</h5>
+					<p class="mb-2">I gironi non sono ancora stati creati o non ci sono dati disponibili.</p>
+					<p class="text-muted mb-0">Assicurati che il torneo principale sia in corso e che i gironi siano stati creati.</p>
+				</div>
+			{:else}
+				{#each categories as category}
+					<div class="mb-5">
+						<!-- Titolo Categoria -->
+						<div class="mb-4">
+							<h3 class="border-bottom pb-2 mb-1">{category}</h3>
+							<p class="text-muted small mb-0">{getCategoryRules(category)}</p>
+						</div>
 
-							<div class="row">
-								{#each groupsByCategory[category] || [] as groupName}
-									{@const standings = groupStandings[groupName] || []}
-									<div class="col-lg-6 col-xl-4 mb-4">
-										<div class="card h-100 shadow-sm">
-											<div class="card-header bg-primary text-white">
-												<h5 class="mb-0 text-center">
-													<i class="bi bi-trophy"></i> {groupName.split('_').slice(1).join(' ')}
-												</h5>
-											</div>
-											<div class="card-body p-0">
-												{#if standings.length > 0}
-													<div class="table-responsive">
-														<table class="table table-hover mb-0">
-															<thead class="table-light">
-																<tr class="text-center">
-																	<th style="width: 40px;">#</th>
-																	<th class="text-start">Squadra</th>
-																	<th style="width: 40px;" title="Partite">P</th>
-																	<th style="width: 40px;" title="Vittorie">V</th>
-																	<th style="width: 40px;" title="Pareggi">N</th>
-																	<th style="width: 40px;" title="Sconfitte">S</th>
-																	<th style="width: 60px;" title="Punti Fatti">Pt+</th>
-																	<th style="width: 60px;" title="Punti Subiti">Pt-</th>
-																	<th style="width: 60px;" title="Differenza">Dif</th>
-																	<th style="width: 50px;" class="fw-bold" title="Punti Classifica">Pti</th>
+						<!-- Gironi per categoria -->
+						<div class="row">
+							{#each groupsByCategory[category] || [] as groupName}
+								{@const standings = groupStandings[groupName] || []}
+								<div class="col-lg-6 mb-4">
+									<div class="card border">
+										<div class="card-header bg-primary text-white">
+											<h5 class="mb-0">{groupName.split('_').slice(1).join(' ')}</h5>
+										</div>
+										<div class="card-body p-0">
+											{#if standings.length > 0}
+												<div class="table-responsive">
+													<table class="table table-sm mb-0">
+														<thead class="table-light">
+															<tr>
+																<th class="text-center" style="width: 40px;">#</th>
+																<th>Squadra</th>
+																<th class="text-center" style="width: 40px;" title="Partite">P</th>
+																<th class="text-center" style="width: 40px;" title="Vittorie">V</th>
+																<th class="text-center" style="width: 40px;" title="Pareggi">N</th>
+																<th class="text-center" style="width: 40px;" title="Sconfitte">S</th>
+																<th class="text-center" style="width: 50px;" title="Punti">Pti</th>
+															</tr>
+														</thead>
+														<tbody>
+															{#each standings as standing, i}
+																<tr class="{i < 2 ? 'table-success' : ''} {standing.played === 0 ? 'table-light' : ''}">
+																	<td class="text-center fw-bold">
+																		{i + 1}
+																		{#if i < 2}
+																			<i class="bi bi-check-circle text-success ms-1"></i>
+																		{/if}
+																	</td>
+																	<td>
+																		<div class="fw-bold">{standing.team.teamName}</div>
+																		<small class="text-muted">{standing.team.coachName}</small>
+																	</td>
+																	<td class="text-center">{standing.played}</td>
+																	<td class="text-center text-success fw-bold">{standing.won}</td>
+																	<td class="text-center text-warning fw-bold">{standing.drawn}</td>
+																	<td class="text-center text-danger fw-bold">{standing.lost}</td>
+																	<td class="text-center fw-bold text-primary">{standing.points}</td>
 																</tr>
-															</thead>
-															<tbody>
-																{#each standings as standing, i}
-																	<tr class="text-center {i < 2 ? 'table-success' : ''} {standing.played === 0 ? 'table-light' : ''}">
-																		<td class="fw-bold">
-																			{i + 1}
-																			{#if i < 2}
-																				<span class="text-success"><i class="bi bi-check-circle"></i></span>
-																			{/if}
-																		</td>
-																		<td class="text-start">
-																			<div class="fw-bold">{standing.team.teamName}</div>
-																			<small class="text-muted">{standing.team.coachName}</small>
-																		</td>
-																		<td>{standing.played}</td>
-																		<td class="text-success fw-bold">{standing.won}</td>
-																		<td class="text-warning fw-bold">{standing.drawn}</td>
-																		<td class="text-danger fw-bold">{standing.lost}</td>
-																		<td class="text-primary">{standing.goalsFor}</td>
-																		<td class="text-danger">{standing.goalsAgainst}</td>
-																		<td class="fw-bold {standing.goalDifference > 0 ? 'text-success' : standing.goalDifference < 0 ? 'text-danger' : ''}">
-																			{standing.goalDifference > 0 ? '+' : ''}{standing.goalDifference}
-																		</td>
-																		<td class="fw-bold text-primary fs-5">{standing.points}</td>
-																	</tr>
-																{/each}
-															</tbody>      
-														</table>
-													</div>
-												{:else}
-													<div class="p-3 text-center text-muted">
-														<i class="bi bi-hourglass-split"></i>
-														<i>Nessun dato disponibile</i>
-													</div>
-												{/if}
-											</div>
-											<div class="card-footer bg-light text-center">
-												<small class="text-muted">
-													<i class="bi bi-check-circle text-success"></i> Le prime 2 si qualificano
-												</small>
-											</div>
+															{/each}
+														</tbody>
+													</table>
+												</div>
+											{:else}
+												<div class="p-3 text-center text-muted">
+													<i class="bi bi-hourglass-split"></i>
+													<p class="mb-0">Nessun dato disponibile</p>
+												</div>
+											{/if}
+										</div>
+										<div class="card-footer text-center bg-light">
+											<small class="text-muted">
+												<i class="bi bi-info-circle"></i> Le prime 2 squadre si qualificano
+											</small>
 										</div>
 									</div>
-								{/each}
-							</div>
+								</div>
+							{/each}
 						</div>
-					{/each}
-				{/if}
-			</div>
+					</div>
+				{/each}
+			{/if}
 		</div>
 	{/if}
 </div>
 
 <style>
 	.card {
-		transition: transform 0.2s ease-in-out;
+		transition: box-shadow 0.15s ease-in-out;
 	}
 	
 	.card:hover {
-		transform: translateY(-2px);
+		box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 	}
 	
 	.table th {
-		font-size: 0.85rem;
 		font-weight: 600;
 		border-bottom: 2px solid #dee2e6;
 	}
 	
 	.table td {
-		font-size: 0.9rem;
 		vertical-align: middle;
 	}
 	
 	.table-success {
-		background-color: rgba(25, 135, 84, 0.1) !important;
-	}
-	
-	.card-header {
-		background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%) !important;
+		background-color: rgba(25, 135, 84, 0.1);
 	}
 	
 	@media (max-width: 768px) {
-		.table th, .table td {
-			font-size: 0.8rem;
-			padding: 0.3rem;
-		}
-		
-		.container-fluid {
-			padding: 0.5rem;
-		}
-		
-		.btn-group {
+		.d-flex.gap-2 {
 			flex-direction: column;
+			gap: 0.5rem !important;
 		}
 		
-		.btn-group .btn {
-			margin-bottom: 0.25rem;
+		.table th, .table td {
+			font-size: 0.85rem;
+			padding: 0.5rem 0.25rem;
+		}
+		
+		.container {
+			padding: 0.5rem;
 		}
 	}
 	
 	@media print {
-		.btn-group {
+		.btn, .alert {
 			display: none;
 		}
 		
 		.card {
 			break-inside: avoid;
 			margin-bottom: 1rem;
+		}
+		
+		.bg-light {
+			background-color: transparent !important;
 		}
 	}
 </style>
