@@ -69,6 +69,7 @@
 			if (!isAutoRefresh) {
 				isLoading = true;
 			}
+			
 			error = '';
 
 			const savedData = localStorage.getItem('volley-s3-tournament');

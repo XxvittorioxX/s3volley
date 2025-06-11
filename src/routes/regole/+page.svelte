@@ -61,7 +61,7 @@
 			isTimeBased: false,
 			description: 'Volley esperto - Set a 25 punti',
 			ageRange: '60-65 anni',
-			advantage: 2
+			advantage: 0
 		}
 	};
 
@@ -69,7 +69,7 @@
 	let categories: string[] = Object.keys(categoryConfigs);
 
 	function getCategoryConfig(category: string): CategoryConfig {
-		return categoryConfigs[category] || {
+		return categoryConfigs[category] || {							
 			name: category,
 			maxScore: 15,
 			playTime: 10,
@@ -92,7 +92,7 @@
 </svelte:head>
 
 <div class="container my-5">
-	<!-- Regole -->
+
 	<div class="card shadow-lg border-0">
 		<div class="card-header bg-primary text-white d-flex align-items-center">
 			<i class="bi bi-clipboard-check-fill me-2 fs-4"></i>
