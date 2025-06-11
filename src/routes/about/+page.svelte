@@ -129,6 +129,14 @@
 		};
 		return rules[category] || { maxScore: 15 };
 	}
+	function getAvailableFields(currentMatchId: string, isKnockout = false): number[] {
+	const allMatches = isKnockout ? knockoutMatches : groupMatches;
+	const usedFields = allMatches
+		.filter(m => m.id !== currentMatchId && m.field !== undefined)
+		.map(m => m.field!);
+	
+	return fields.filter(field => !usedFields.includes(field));
+}		
 
 	function isValidScore(score1: number, score2: number, category: string): boolean {
 		const { maxScore } = getScoreRules(category);
@@ -282,10 +290,13 @@
 		saveState();
 	}
 
-	function setFieldForMatch(matchId: string, field: number, isKnockout = false) {
-		const matches = isKnockout ? knockoutMatches : groupMatches;
-		const match = matches.find(m => m.id === matchId);
-		if (match) {
+function setFieldForMatch(matchId: string, field: number, isKnockout = false) {
+	const matches = isKnockout ? knockoutMatches : groupMatches;
+	const match = matches.find(m => m.id === matchId);
+	if (match) {
+		// Verifica che il campo sia ancora disponibile
+		const availableFields = getAvailableFields(matchId, isKnockout);
+		if (availableFields.includes(field)) {
 			match.field = field;
 			if (isKnockout) {
 				knockoutMatches = [...knockoutMatches];
@@ -293,8 +304,12 @@
 				groupMatches = [...groupMatches];
 			}
 			saveState();
+		} else {
+			alert(`Il campo ${field} è già occupato da un'altra partita!`);
 		}
 	}
+}
+
 
 	function resetMatchResult(matchId: string) {
 		const match = groupMatches.find(m => m.id === matchId);
@@ -583,11 +598,14 @@ function startKnockoutPhase() {
 													<i class="bi bi-arrow-clockwise"></i>
 												</button>
 												<select class="form-select form-select-sm" bind:value={match.field} on:change={() => setFieldForMatch(match.id, match.field!)}>
-													<option value={undefined}>Campo</option>
-													{#each fields as field}
-														<option value={field}>{field}</option>
+												<option value={undefined}>Campo</option>
+												{#each getAvailableFields(match.id) as field}
+													<option value={field}>{field}</option>
 													{/each}
-												</select>
+														{#if match.field && !getAvailableFields(match.id).includes(match.field)}
+														<option value={match.field}>{match.field}</option>
+														{/if}
+													</select>
 											</div>
 										{:else}
 											<div class="d-flex gap-1">
@@ -600,10 +618,13 @@ function startKnockoutPhase() {
 											</div>
 											<select class="form-select form-select-sm mt-1" bind:value={match.field} on:change={() => setFieldForMatch(match.id, match.field!)}>
 												<option value={undefined}>Campo</option>
-												{#each fields as field}
-													<option value={field}>{field}</option>
-												{/each}
-											</select>
+												{#each getAvailableFields(match.id) as field}
+											<option value={field}>{field}</option>
+													{/each}
+													{#if match.field && !getAvailableFields(match.id).includes(match.field)}
+													<option value={match.field}>{match.field}</option>
+												{/if}
+													</select>
 										{/if}
 									</div>
 								</div>
