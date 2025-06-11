@@ -37,7 +37,6 @@
 		goalDifference: number;
 	}
 
-	// Store per condividere dati tra componenti
 	const tournamentStore = writable({
 		teams: [],
 		groupMatches: [],
@@ -48,7 +47,6 @@
 		currentPhase: 'setup'
 	});
 
-	// State locale
 	let teams: Team[] = [];
 	let groupMatches: Match[] = [];
 	let groupStandings: { [key: string]: GroupStanding[] } = {};
@@ -61,14 +59,12 @@
 
 	onMount(() => {
 		loadTournamentData();
-		// Auto-refresh ogni 30 secondi
 		const interval = setInterval(() => {
-			loadTournamentData(true); // Passa true per indicare che è un refresh automatico
+			loadTournamentData(true);
 		}, 30000);
 		return () => clearInterval(interval);
 	});
 
-	// Carica i dati del torneo dal localStorage o da un'API
 	async function loadTournamentData(isAutoRefresh = false) {
 		try {
 			if (!isAutoRefresh) {
@@ -76,7 +72,6 @@
 			}
 			error = '';
 
-			// Prova a caricare dal localStorage
 			const savedData = localStorage.getItem('volley-s3-tournament');
 			if (savedData) {
 				const tournamentData = JSON.parse(savedData);
@@ -87,13 +82,9 @@
 				groupsByCategory = tournamentData.groupsByCategory || {};
 				categories = tournamentData.categories || [];
 				
-				// Ricalcola le classifiche
 				recalculateAllStandings();
-				
-				// Aggiorna timestamp
 				lastUpdateTime = new Date().toLocaleTimeString('it-IT');
 			} else {
-				// Se non ci sono dati salvati, prova a caricare le squadre dall'API
 				await loadTeamsFromAPI();
 			}
 		} catch (err) {
@@ -106,7 +97,6 @@
 		}
 	}
 
-	// Carica le squadre dall'API (come nel primo codice)
 	async function loadTeamsFromAPI() {
 		try {
 			const response = await fetch('/api/teams', {
@@ -131,7 +121,6 @@
 		}
 	}
 
-	// Scoring rules per le diverse categorie (come nel primo codice)
 	function getAdvantageForCategory(category: string): number {
 		const advantages: { [key: string]: number } = {
 			'S1': 2, 'S2': 1, 'S3': 2, 'Under 12': 2, 'Seniores': 2
@@ -149,15 +138,13 @@
 	function getCategoryRules(category: string): string {
 		const advantage = getAdvantageForCategory(category);
 		const baseScore = getBaseScoreForCategory(category);
-		return `Si vince a ${baseScore} punti. In parità da ${baseScore}-${baseScore}, serve vantaggio di ${advantage}`;
+		return `Vittoria a ${baseScore} punti • Vantaggio minimo: ${advantage} punti oltre il ${baseScore}°`;
 	}
 
-	// Ricalcola le classifiche dei gironi
 	function recalculateGroupStanding(groupName: string) {
 		const groupTeams = groups[groupName];
 		if (!groupTeams) return;
 
-		// Inizializza le classifiche
 		groupStandings[groupName] = groupTeams.map(team => ({
 			team,
 			played: 0,
@@ -170,7 +157,6 @@
 			goalDifference: 0
 		}));
 
-		// Calcola le statistiche dalle partite giocate
 		const groupMatchesPlayed = groupMatches.filter(m => 
 			m.group === groupName && m.score1 !== undefined && m.score2 !== undefined
 		);
@@ -195,17 +181,13 @@
 				if (match.score1 !== match.score2) {
 					const minScore = Math.min(match.score1, match.score2);
 					
-					// Determina il vincitore basandosi sulle regole
 					let winner1 = false;
 					if (minScore < baseScore) {
-						// Sotto il punteggio base, basta un punto di vantaggio
 						winner1 = match.score1 > match.score2;
 					} else {
-						// Al punteggio base o sopra, serve il vantaggio richiesto
 						if (scoreDiff >= requiredAdvantage) {
 							winner1 = match.score1 > match.score2;
 						} else {
-							// Partita non conclusa correttamente, considerala pareggio
 							standing1.drawn++;
 							standing2.drawn++;
 							standing1.points += 1;
@@ -226,7 +208,6 @@
 						standing1.lost++;
 					}
 				} else {
-					// Pareggio
 					standing1.drawn++;
 					standing2.drawn++;
 					standing1.points += 1;
@@ -238,7 +219,6 @@
 			}
 		});
 
-		// Ordina la classifica
 		groupStandings[groupName].sort((a, b) => {
 			if (b.points !== a.points) return b.points - a.points;
 			if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
@@ -247,7 +227,6 @@
 		});
 	}
 
-	// Ricalcola tutte le classifiche
 	function recalculateAllStandings() {
 		Object.keys(groups).forEach(groupName => {
 			recalculateGroupStanding(groupName);
@@ -255,12 +234,10 @@
 		groupStandings = { ...groupStandings };
 	}
 
-	// Funzione per aggiornare manualmente
 	function refreshStandings() {
 		loadTournamentData();
 	}
 
-	// Funzione per esportare i dati
 	function exportStandings() {
 		const data = {
 			groupStandings,
@@ -277,386 +254,288 @@
 		URL.revokeObjectURL(url);
 	}
 
-	// Funzione per la stampa
 	function printStandings() {
 		window.print();
 	}
 </script>
 
 <svelte:head>
-	<title>Classifiche Gironi - Torneo Volley S3</title>
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet" />
+	<title>Tournament Standings | Volley S3 Championship</title>
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 </svelte:head>
 
-<div class="container my-4">
-	<!-- Header -->
-	<div class="row mb-4">
-		<div class="col-12">
-			<div class="card border-0 shadow-lg bg-gradient">
-				<div class="card-header bg-primary text-white border-0 py-4">
-					<div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
-						<div class="mb-3 mb-md-0 text-center text-md-start">
-							<h1 class="display-6 fw-bold mb-2">
-								<i class="bi bi-trophy-fill me-2"></i>
-								Classifiche Gironi - Torneo Volley S3
-							</h1>
-							<p class="mb-0 opacity-75">
-								<i class="bi bi-clock me-1"></i>
-								Aggiornamento automatico ogni 30s
-								{#if lastUpdateTime}
-									• Ultimo aggiornamento: <span class="fw-semibold">{lastUpdateTime}</span>
-								{/if}
-							</p>
-						</div>
-						<div class="d-flex flex-column flex-sm-row gap-2">
-							<button class="btn btn-light btn-lg shadow-sm" on:click={refreshStandings}>
-								<i class="bi bi-arrow-clockwise me-2"></i> Aggiorna
-							</button>
-							<div class="btn-group">
-								<button class="btn btn-outline-light" on:click={exportStandings}>
-									<i class="bi bi-download me-1"></i> Esporta
-								</button>
-								<button class="btn btn-outline-light" on:click={printStandings}>
-									<i class="bi bi-printer me-1"></i> Stampa
-								</button>
-							</div>
-						</div>
+<div class="tournament-container">
+	<header class="bg-dark text-white py-4 shadow-lg">
+		<div class="container">
+			<div class="row align-items-center">
+				<div class="col-lg-8">
+					<h1 class="display-5 fw-bold mb-2">
+						<span class="me-3">🏆</span>
+						Tournament Standings
+					</h1>
+					<p class="lead mb-2">Volley S3 Championship • Group Phase</p>
+					{#if lastUpdateTime}
+						<small class="text-white-50">
+							<span class="badge bg-success me-2">Live</span>
+							Last updated: {lastUpdateTime} • Auto-refresh every 30s
+						</small>
+					{/if}
+				</div>
+				<div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+					<div class="btn-group" role="group">
+						<button class="btn btn-light" on:click={refreshStandings}>
+							<i class="bi bi-arrow-clockwise me-1"></i>
+							Refresh
+						</button>
+						<button class="btn btn-outline-light" on:click={exportStandings}>
+							<i class="bi bi-download me-1"></i>
+							Export
+						</button>
+						<button class="btn btn-outline-light" on:click={printStandings}>
+							<i class="bi bi-printer me-1"></i>
+							Print
+						</button>
 					</div>
 				</div>
 			</div>
 		</div>
-	</div>
+	</header>
 
-	{#if isLoading}
-		<div class="row justify-content-center">
-			<div class="col-md-6">
-				<div class="card border-0 shadow-sm">
-					<div class="card-body text-center py-5">
-						<div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
-							<span class="visually-hidden">Caricamento...</span>
-						</div>
-						<h4 class="text-muted">Caricamento classifiche...</h4>
-						<p class="text-muted mb-0">Attendere prego</p>
-					</div>
-				</div>
-			</div>
-		</div>
-	{:else if error}
-		<div class="row justify-content-center">
-			<div class="col-md-8">
-				<div class="alert alert-danger alert-dismissible border-0 shadow-sm" role="alert">
-					<div class="d-flex align-items-center">
-						<i class="bi bi-exclamation-triangle-fill fs-3 me-3"></i>
-						<div class="flex-grow-1">
-							<h5 class="alert-heading mb-1">Errore nel caricamento</h5>
-							<p class="mb-2">{error}</p>
-							<button class="btn btn-outline-danger btn-sm" on:click={refreshStandings}>
-								<i class="bi bi-arrow-clockwise me-1"></i> Riprova
-							</button>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	{:else}
-		<div class="row">
-			<div class="col-12">
-				{#if Object.keys(groupStandings).length === 0}
-					<div class="row justify-content-center">
-						<div class="col-md-8">
-							<div class="card border-0 shadow-sm">
-								<div class="card-body text-center py-5">
-									<div class="mb-4">
-										<i class="bi bi-info-circle text-info" style="font-size: 4rem;"></i>
-									</div>
-									<h4 class="card-title text-info mb-3">Nessuna classifica disponibile</h4>
-									<p class="card-text text-muted mb-3">I gironi non sono ancora stati creati o non ci sono dati disponibili.</p>
-									<p class="card-text">
-										<small class="text-muted">Assicurati che il torneo principale sia in corso e che i gironi siano stati creati.</small>
-									</p>
-									<button class="btn btn-primary mt-3" on:click={refreshStandings}>
-										<i class="bi bi-arrow-clockwise me-1"></i> Aggiorna
-									</button>
+	<main class="py-5">
+		<div class="container">
+			{#if isLoading}
+				<div class="row justify-content-center">
+					<div class="col-md-6">
+						<div class="card text-center py-5">
+							<div class="card-body">
+								<div class="spinner-border text-primary mb-3" role="status">
+									<span class="visually-hidden">Loading...</span>
 								</div>
+								<h3 class="card-title">Loading Tournament Data</h3>
+								<p class="card-text text-muted">Please wait while we fetch the latest standings...</p>
 							</div>
 						</div>
 					</div>
-				{:else}
-					{#each categories as category}
-						<div class="mb-5">
-							<!-- Titolo Categoria -->
-							<div class="card border-0 shadow-sm mb-4">
-								<div class="card-header bg-gradient bg-secondary text-white border-0">
-									<div class="d-flex align-items-center justify-content-between">
-										<div>
-											<h3 class="mb-1 fw-bold">
-												<i class="bi bi-people-fill me-2"></i>{category}
-											</h3>
-											<p class="mb-0 opacity-75">
-												<i class="bi bi-gear me-1"></i>{getCategoryRules(category)}
-											</p>
-										</div>
-										<div class="text-end">
-											<span class="badge bg-light text-dark fs-6">
-												{(groupsByCategory[category] || []).length} gironi
-											</span>
-										</div>
+				</div>
+			{:else if error}
+				<div class="row justify-content-center">
+					<div class="col-md-6">
+						<div class="card text-center py-5">
+							<div class="card-body">
+								<div class="text-warning mb-3">
+									<i class="bi bi-exclamation-triangle" style="font-size: 3rem;"></i>
+								</div>
+								<h3 class="card-title">Unable to Load Data</h3>
+								<p class="card-text text-muted">{error}</p>
+								<button class="btn btn-primary" on:click={refreshStandings}>
+									<i class="bi bi-arrow-clockwise me-1"></i>
+									Retry
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			{:else if Object.keys(groupStandings).length === 0}
+				<div class="row justify-content-center">
+					<div class="col-md-6">
+						<div class="card text-center py-5">
+							<div class="card-body">
+								<div class="text-info mb-3">
+									<i class="bi bi-bar-chart" style="font-size: 3rem;"></i>
+								</div>
+								<h3 class="card-title">No Standings Available</h3>
+								<p class="card-text text-muted">Tournament groups have not been created yet or no match data is available.</p>
+								<button class="btn btn-primary" on:click={refreshStandings}>
+									<i class="bi bi-arrow-clockwise me-1"></i>
+									Check Again
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			{:else}
+				{#each categories as category}
+					<div class="mb-5">
+						<div class="card mb-4">
+							<div class="card-header bg-primary text-white">
+								<div class="row align-items-center">
+									<div class="col">
+										<h2 class="card-title mb-1">{category}</h2>
+										<p class="card-text mb-0 opacity-75">{getCategoryRules(category)}</p>
+									</div>
+									<div class="col-auto">
+										<span class="badge bg-light text-dark">{(groupsByCategory[category] || []).length} Groups</span>
 									</div>
 								</div>
 							</div>
+						</div>
 
-							<!-- Gironi per categoria -->
-							<div class="row g-4">
-								{#each groupsByCategory[category] || [] as groupName}
-									{@const standings = groupStandings[groupName] || []}
-									<div class="col-xl-6 col-lg-12">
-										<div class="card h-100 border-0 shadow hover-lift">
-											<div class="card-header bg-primary text-white border-0 position-relative">
-												<div class="d-flex align-items-center justify-content-between">
-													<h5 class="mb-0 fw-bold">
-														<i class="bi bi-diagram-3 me-2"></i>
-														{groupName.split('_').slice(1).join(' ')}
-													</h5>
-													<div class="badge bg-light text-primary fs-6">
-														{standings.length} squadre
-													</div>
-												</div>
-												<div class="position-absolute top-0 end-0 p-2">
-													<div class="bg-white bg-opacity-25 rounded-circle p-1">
-														<i class="bi bi-trophy text-white"></i>
-													</div>
-												</div>
+						<div class="row">
+							{#each groupsByCategory[category] || [] as groupName}
+								{@const standings = groupStandings[groupName] || []}
+								<div class="col-lg-6 col-xl-4 mb-4">
+									<div class="card h-100 shadow-sm">
+										<div class="card-header bg-info text-white">
+											<div class="d-flex justify-content-between align-items-center">
+												<h5 class="card-title mb-0">{groupName.split('_').slice(1).join(' ')}</h5>
+												<span class="badge bg-light text-dark">{standings.length} Teams</span>
 											</div>
-											<div class="card-body p-0">
-												{#if standings.length > 0}
-													<div class="table-responsive">
-														<table class="table table-hover mb-0">
-															<thead class="table-light border-bottom">
-																<tr>
-																	<th class="text-center fw-bold" style="width: 50px;">
-																		<i class="bi bi-hash text-muted"></i>
-																	</th>
-																	<th class="fw-bold">
-																		<i class="bi bi-people me-1 text-muted"></i>Squadra
-																	</th>
-																	<th class="text-center fw-bold" style="width: 50px;" title="Partite">
-																		<i class="bi bi-calendar-event text-muted"></i>
-																	</th>
-																	<th class="text-center fw-bold" style="width: 50px;" title="Vittorie">
-																		<i class="bi bi-check-circle text-success"></i>
-																	</th>
-																	<th class="text-center fw-bold" style="width: 50px;" title="Pareggi">
-																		<i class="bi bi-dash-circle text-warning"></i>
-																	</th>
-																	<th class="text-center fw-bold" style="width: 50px;" title="Sconfitte">
-																		<i class="bi bi-x-circle text-danger"></i>
-																	</th>
-																	<th class="text-center fw-bold" style="width: 60px;" title="Punti">
-																		<i class="bi bi-star-fill text-primary"></i>
-																	</th>
-																</tr>
-															</thead>
-															<tbody>
-																{#each standings as standing, i}
-																	<tr class="position-relative {i < 2 ? 'bg-success bg-opacity-10 border-success border-opacity-25' : ''} {standing.played === 0 ? 'bg-light bg-opacity-50' : ''}">
-																		{#if i < 2}
-																			<div class="position-absolute top-0 start-0 h-100 bg-success" style="width: 4px;"></div>
-																		{/if}
-																		<td class="text-center">
-																			<div class="d-flex align-items-center justify-content-center">
-																				<span class="badge {i === 0 ? 'bg-warning text-dark' : i === 1 ? 'bg-secondary' : 'bg-light text-dark'} rounded-pill fs-6 fw-bold">
-																					{i + 1}
+										</div>
+										
+										<div class="card-body p-0">
+											{#if standings.length > 0}
+												<div class="table-responsive">
+													<table class="table table-hover mb-0">
+														<thead class="table-light">
+															<tr>
+																<th style="width: 60px;">Pos</th>
+																<th>Team</th>
+																<th class="text-center" style="width: 50px;">MP</th>
+																<th class="text-center" style="width: 50px;">W</th>
+																<th class="text-center" style="width: 50px;">D</th>
+																<th class="text-center" style="width: 50px;">L</th>
+																<th class="text-center" style="width: 60px;">Pts</th>
+															</tr>
+														</thead>
+														<tbody>
+															{#each standings as standing, i}
+																<tr class="{i < 2 ? 'table-success' : ''} {standing.played === 0 ? 'opacity-50' : ''}">
+																	<td>
+																		<div class="d-flex align-items-center">
+																			<span class="badge {i === 0 ? 'bg-warning' : i === 1 ? 'bg-secondary' : 'bg-light text-dark'} me-2">
+																				{i + 1}
+																			</span>
+																			{#if i < 2}
+																				<span class="text-success">
+																					<i class="bi bi-arrow-up-right"></i>
 																				</span>
-																				{#if i < 2}
-																					<i class="bi bi-arrow-up-circle-fill text-success ms-1"></i>
-																				{/if}
-																			</div>
-																		</td>
-																		<td class="py-3">
-																			<div class="d-flex align-items-center">
-																				<div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-																					<i class="bi bi-people text-white"></i>
-																				</div>
-																				<div>
-																					<div class="fw-bold text-dark">{standing.team.teamName}</div>
-																					<small class="text-muted">
-																						<i class="bi bi-person me-1"></i>{standing.team.coachName}
-																					</small>
-																				</div>
-																			</div>
-																		</td>
-																		<td class="text-center py-3">
-																			<span class="badge bg-light text-dark rounded-pill">{standing.played}</span>
-																		</td>
-																		<td class="text-center py-3">
-																			<span class="badge bg-success rounded-pill fw-bold">{standing.won}</span>
-																		</td>
-																		<td class="text-center py-3">
-																			<span class="badge bg-warning text-dark rounded-pill fw-bold">{standing.drawn}</span>
-																		</td>
-																		<td class="text-center py-3">
-																			<span class="badge bg-danger rounded-pill fw-bold">{standing.lost}</span>
-																		</td>
-																		<td class="text-center py-3">
-																			<span class="badge bg-primary rounded-pill fs-6 fw-bold">{standing.points}</span>
-																		</td>
-																	</tr>
-																{/each}
-															</tbody>
-														</table>
+																			{/if}
+																		</div>
+																	</td>
+																	<td>
+																		<div>
+																			<div class="fw-semibold">{standing.team.teamName}</div>
+																			<small class="text-muted">{standing.team.coachName}</small>
+																		</div>
+																	</td>
+																	<td class="text-center">{standing.played}</td>
+																	<td class="text-center text-success fw-bold">{standing.won}</td>
+																	<td class="text-center text-warning fw-bold">{standing.drawn}</td>
+																	<td class="text-center text-danger fw-bold">{standing.lost}</td>
+																	<td class="text-center">
+																		<span class="badge bg-primary fs-6">{standing.points}</span>
+																	</td>
+																</tr>
+															{/each}
+														</tbody>
+													</table>
+												</div>
+											{:else}
+												<div class="text-center py-5">
+													<div class="text-muted mb-3">
+														<i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
 													</div>
-												{:else}
-													<div class="p-5 text-center">
-														<i class="bi bi-hourglass-split text-muted mb-3" style="font-size: 3rem;"></i>
-														<h6 class="text-muted">Nessun dato disponibile</h6>
-														<p class="text-muted small mb-0">Le partite non sono ancora iniziate</p>
-													</div>
-												{/if}
-											</div>
-											<div class="card-footer bg-light border-0 text-center">
-												<small class="text-muted d-flex align-items-center justify-content-center">
-													<i class="bi bi-info-circle me-1"></i>
-													<span class="fw-semibold">Le prime 2 squadre si qualificano</span>
-													<i class="bi bi-arrow-up-circle text-success ms-1"></i>
-												</small>
-											</div>
+													<p class="text-muted mb-0">No match data available</p>
+												</div>
+											{/if}
+										</div>
+										
+										<div class="card-footer bg-light">
+											<small class="text-muted">
+												<span class="badge bg-success me-2"></span>
+												Top 2 teams qualify for knockout phase
+											</small>
 										</div>
 									</div>
-								{/each}
-							</div>
+								</div>
+							{/each}
 						</div>
-					{/each}
-				{/if}
-			</div>
+					</div>
+				{/each}
+			{/if}
 		</div>
-	{/if}
+	</main>
 </div>
 
 <style>
-	.bg-gradient {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	:global(body) {
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+		min-height: 100vh;
 	}
-	
-	.hover-lift {
-		transition: all 0.3s ease;
+
+	.tournament-container {
+		min-height: 100vh;
 	}
-	
-	.hover-lift:hover {
-		transform: translateY(-5px);
-		box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
-	}
-	
+
 	.card {
-		transition: all 0.15s ease-in-out;
-		border-radius: 15px;
-		overflow: hidden;
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
 	}
-	
-	.card-header {
-		border-radius: 15px 15px 0 0 !important;
+
+	.card:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
 	}
-	
+
+	.table-responsive {
+		border-radius: 0;
+	}
+
 	.table th {
+		font-size: 0.75rem;
 		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
 		border-bottom: 2px solid #dee2e6;
-		background-color: rgba(248, 249, 250, 0.8);
-		padding: 1rem 0.75rem;
 	}
-	
+
 	.table td {
 		vertical-align: middle;
-		border-color: rgba(0, 0, 0, 0.05);
+		font-size: 0.875rem;
 	}
-	
-	.table-hover tbody tr:hover {
-		background-color: rgba(0, 123, 255, 0.05);
-	}
-	
+
 	.badge {
 		font-size: 0.75rem;
 	}
-	
+
 	.spinner-border {
-		animation: spinner-border 0.75s linear infinite;
+		width: 3rem;
+		height: 3rem;
 	}
-	
-	@keyframes pulse {
-		0% { opacity: 1; }
-		50% { opacity: 0.5; }
-		100% { opacity: 1; }
-	}
-	
-	.bg-success.bg-opacity-10 {
-		animation: pulse 2s infinite;
-	}
-	
-	.btn {
-		border-radius: 10px;
-		transition: all 0.2s ease;
-	}
-	
-	.btn:hover {
-		transform: translateY(-2px);
-	}
-	
+
 	@media (max-width: 768px) {
-		.d-flex.gap-2 {
-			flex-direction: column;
-			gap: 0.5rem !important;
+		.display-5 {
+			font-size: 1.75rem;
 		}
 		
-		.table th, .table td {
-			font-size: 0.85rem;
-			padding: 0.75rem 0.5rem;
+		.btn-group {
+			width: 100%;
 		}
 		
-		.container {
-			padding: 0.5rem;
+		.btn-group .btn {
+			font-size: 0.875rem;
 		}
 		
-		.card {
-			border-radius: 10px;
-		}
-		
-		.display-6 {
-			font-size: 1.5rem;
-		}
-	}
-	
-	@media (max-width: 576px) {
-		.table th, .table td {
+		.table {
 			font-size: 0.8rem;
+		}
+		
+		.table th, .table td {
 			padding: 0.5rem 0.25rem;
 		}
-		
-		.badge {
-			font-size: 0.7rem;
-		}
 	}
-	
+
 	@media print {
-		.btn, .alert, .card-header .badge {
-			display: none;
+		.btn, .card-footer {
+			display: none !important;
 		}
 		
 		.card {
 			break-inside: avoid;
-			margin-bottom: 1rem;
 			box-shadow: none !important;
 			border: 1px solid #dee2e6 !important;
-		}
-		
-		.bg-light, .bg-gradient {
-			background-color: transparent !important;
-		}
-		
-		.text-white {
-			color: #000 !important;
-		}
-		
-		.hover-lift:hover {
-			transform: none;
 		}
 	}
 </style>
