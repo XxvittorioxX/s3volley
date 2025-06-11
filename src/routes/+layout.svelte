@@ -1,13 +1,14 @@
 <script lang="ts">
 	import Header from './Header.svelte';
 	import '../app.css';
+	import Popup from './popup.svelte';
 
 	let { children } = $props();
 </script>
 
 <div class="app">
 	<Header />
-
+<Popup />
 	<main>
 		{@render children()}
 	</main>
