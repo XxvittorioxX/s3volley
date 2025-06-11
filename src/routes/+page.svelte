@@ -367,8 +367,64 @@
 			isLoading = false;
 		}
 	}
-
 	
+	let popupShown = false;
+	let showPopupModal = false;
+	let popupInterval: number | undefined;
+
+	function showPopup() {
+		showPopupModal = true;
+		if (typeof document !== 'undefined') {
+			document.body.style.overflow = 'hidden';
+		}
+	}
+
+	function closePopup() {
+		showPopupModal = false;
+		if (typeof document !== 'undefined') {
+			document.body.style.overflow = 'auto';
+		}
+	}
+
+	function handleDiscoverClick() {
+		console.log('Click su "Scopri di Più" - Sistema3');
+		window.open('https://sistema3.it', '_blank');
+		setTimeout(closePopup, 100);
+	}
+
+	function handleKeydown(event: { key: string; }) {
+		if (event.key === 'Escape') {
+			closePopup();
+		}
+	}
+
+	function handleOverlayClick(event: { target: any; currentTarget: any; }) {
+		if (event.target === event.currentTarget) {
+			closePopup();
+		}
+	}
+
+	function showAutoPopup() {
+		if (!popupShown) {
+			showPopup();
+			popupShown = true;
+		}
+	}
+
+	onMount(() => {
+
+		setTimeout(showAutoPopup, 3000);
+		
+		popupInterval = setInterval(() => {
+			showPopup();
+		}, 600000);
+
+		return () => {
+			if (popupInterval) {
+				clearInterval(popupInterval);
+			}
+		};
+	});
 </script>
 
 <div class="container mt-5">
@@ -537,76 +593,6 @@
 		</div>
 	</div>
 </div>
-<script>
-	import { onMount } from 'svelte';
-	
-	let popupShown = false;
-	let showPopupModal = false;
-	let popupInterval;
-
-	// Funzione per mostrare il popup
-	function showPopup() {
-		showPopupModal = true;
-		if (typeof document !== 'undefined') {
-			document.body.style.overflow = 'hidden';
-		}
-	}
-
-	// Funzione per chiudere il popup
-	function closePopup() {
-		showPopupModal = false;
-		if (typeof document !== 'undefined') {
-			document.body.style.overflow = 'auto';
-		}
-	}
-
-	// Gestione del click su "Scopri di Più"
-	function handleDiscoverClick() {
-		console.log('Click su "Scopri di Più" - Sistema3');
-		window.open('https://sistema3.it', '_blank');
-		setTimeout(closePopup, 100);
-	}
-
-	// Gestione della chiusura con ESC
-	function handleKeydown(event) {
-		if (event.key === 'Escape') {
-			closePopup();
-		}
-	}
-
-	// Gestione del click sull'overlay
-	function handleOverlayClick(event) {
-		if (event.target === event.currentTarget) {
-			closePopup();
-		}
-	}
-
-	// Mostra popup automaticamente
-	function showAutoPopup() {
-		if (!popupShown) {
-			showPopup();
-			popupShown = true;
-		}
-	}
-
-	// Inizializzazione quando il componente è montato
-	onMount(() => {
-		// Mostra popup dopo 3 secondi dal caricamento del sito
-		setTimeout(showAutoPopup, 3000);
-		
-		// Mostra popup ogni 10 minuti (600000 ms)
-		popupInterval = setInterval(() => {
-			showPopup();
-		}, 600000);
-
-		// Pulizia al termine della sessione
-		return () => {
-			if (popupInterval) {
-				clearInterval(popupInterval);
-			}
-		};
-	});
-</script>
 
 <svelte:window on:keydown={handleKeydown} />
 
@@ -615,12 +601,12 @@
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </svelte:head>
 
-<!-- Contenuto principale del sito -->
 <main class="main-content">
-	<!-- Il tuo contenuto del sito va qui -->
 </main>
 
 {#if showPopupModal}
+	<!-- svelte-ignore a11y_interactive_supports_focus -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div class="popup-overlay show" on:click={handleOverlayClick} role="dialog" aria-modal="true">
 		<div class="popup-content">
 			<div class="promo-badge">OFFERTA LIMITATA!</div>
