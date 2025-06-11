@@ -535,3 +535,491 @@
 		</div>
 	</div>
 </div>
+
+<script>
+	import { onMount } from 'svelte';
+	
+	let popupShown = false;
+	let showPopupModal = false;
+	let popupInterval;
+
+	// Funzione per mostrare il popup
+	function showPopup() {
+		showPopupModal = true;
+		if (typeof document !== 'undefined') {
+			document.body.style.overflow = 'hidden';
+		}
+	}
+
+	// Funzione per chiudere il popup
+	function closePopup() {
+		showPopupModal = false;
+		if (typeof document !== 'undefined') {
+			document.body.style.overflow = 'auto';
+		}
+	}
+
+	// Gestione del click su "Scopri di Più"
+	function handleDiscoverClick() {
+		console.log('Click su "Scopri di Più" - Sistema3');
+		window.open('https://sistema3.it', '_blank');
+		setTimeout(closePopup, 100);
+	}
+
+	// Gestione della chiusura con ESC
+	function handleKeydown(event) {
+		if (event.key === 'Escape') {
+			closePopup();
+		}
+	}
+
+	// Gestione del click sull'overlay
+	function handleOverlayClick(event) {
+		if (event.target === event.currentTarget) {
+			closePopup();
+		}
+	}
+
+	// Mostra popup automaticamente
+	function showAutoPopup() {
+		if (!popupShown) {
+			showPopup();
+			popupShown = true;
+		}
+	}
+
+	// Inizializzazione quando il componente è montato
+	onMount(() => {
+		// Mostra popup dopo 3 secondi
+		setTimeout(showAutoPopup, 3000);
+		
+		// Mostra popup ogni 10 minuti (600000 ms)
+		popupInterval = setInterval(() => {
+			showPopup();
+		}, 600000);
+
+		// Pulizia al termine della sessione
+		return () => {
+			if (popupInterval) {
+				clearInterval(popupInterval);
+			}
+		};
+	});
+</script>
+
+<svelte:window on:keydown={handleKeydown} />
+
+<svelte:head>
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</svelte:head>
+
+<div class="demo-content">
+	<h1>Demo Popup Sistema3</h1>
+	<p>Clicca il pulsante per testare il popup. Il popup apparirà anche automaticamente dopo 3 secondi.</p>
+	<button class="demo-btn" on:click={showPopup}>Mostra Popup</button>
+</div>
+
+{#if showPopupModal}
+	<div class="popup-overlay show" on:click={handleOverlayClick} role="dialog" aria-modal="true">
+		<div class="popup-content">
+			<div class="promo-badge">OFFERTA LIMITATA!</div>
+			
+			<div class="popup-header">
+				<button class="close-btn" on:click={closePopup} aria-label="Chiudi popup">&times;</button>
+				<div class="popup-logo">SISTEMA3</div>
+				<div class="popup-subtitle">La Tua Soluzione Digitale Completa</div>
+			</div>
+			
+			<div class="popup-body">
+				<div class="popup-offer">
+					<div class="offer-title">🚀 Sconto del 30% sui Nuovi Progetti!</div>
+					<div class="offer-text">
+						Approfitta della nostra offerta speciale per trasformare 
+						la tua presenza digitale con soluzioni professionali.
+					</div>
+				</div>
+				
+				<ul class="popup-features">
+					<li>Sviluppo Web Professionale</li>
+					<li>Design Responsive & Moderno</li>
+					<li>Ottimizzazione SEO Avanzata</li>
+					<li>Supporto Tecnico Dedicato</li>
+					<li>Hosting e Manutenzione Inclusi</li>
+				</ul>
+				
+				<div class="popup-buttons">
+					<button class="btn-primary" on:click={handleDiscoverClick}>
+						Scopri di Più
+					</button>
+					<button class="btn-secondary" on:click={closePopup}>
+						Forse Dopo
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<style>
+	:global(body) {
+		font-family: Arial, sans-serif;
+		margin: 0;
+		padding: 20px;
+		background: #f5f5f5;
+	}
+
+	/* Overlay del popup */
+	.popup-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background: rgba(0, 0, 0, 0.6);
+		z-index: 10000;
+		backdrop-filter: blur(5px);
+		animation: fadeIn 0.3s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	@keyframes fadeIn {
+		from { opacity: 0; }
+		to { opacity: 1; }
+	}
+
+	/* Contenuto del popup */
+	.popup-content {
+		background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+		border-radius: 20px;
+		padding: 0;
+		max-width: 450px;
+		width: 90%;
+		max-height: 90vh;
+		overflow: hidden;
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+		position: relative;
+		color: white;
+		animation: slideIn 0.4s ease;
+		transform-origin: center;
+	}
+
+	@keyframes slideIn {
+		from { 
+			opacity: 0;
+			transform: scale(0.8) translateY(-50px);
+		}
+		to { 
+			opacity: 1;
+			transform: scale(1) translateY(0);
+		}
+	}
+
+	/* Header del popup */
+	.popup-header {
+		text-align: center;
+		padding: 30px 30px 20px;
+		position: relative;
+	}
+
+	.close-btn {
+		position: absolute;
+		top: 15px;
+		right: 20px;
+		background: rgba(255, 255, 255, 0.2);
+		border: none;
+		color: white;
+		font-size: 24px;
+		width: 35px;
+		height: 35px;
+		border-radius: 50%;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 10001;
+	}
+
+	.close-btn:hover {
+		background: rgba(255, 255, 255, 0.3);
+		transform: rotate(90deg);
+	}
+
+	.popup-logo {
+		font-size: 36px;
+		font-weight: bold;
+		margin-bottom: 10px;
+		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+		letter-spacing: 2px;
+	}
+
+	.popup-subtitle {
+		font-size: 16px;
+		opacity: 0.9;
+		margin-bottom: 20px;
+		font-weight: 300;
+	}
+
+	/* Corpo del popup */
+	.popup-body {
+		padding: 0 30px 30px;
+	}
+
+	.popup-offer {
+		background: rgba(255, 255, 255, 0.15);
+		border-radius: 15px;
+		padding: 20px;
+		margin-bottom: 25px;
+		text-align: center;
+		backdrop-filter: blur(10px);
+		border: 1px solid rgba(255, 255, 255, 0.2);
+	}
+
+	.offer-title {
+		font-size: 20px;
+		font-weight: bold;
+		margin-bottom: 10px;
+		color: #fbbf24;
+	}
+
+	.offer-text {
+		font-size: 14px;
+		line-height: 1.5;
+		opacity: 0.95;
+	}
+
+	.popup-features {
+		list-style: none;
+		padding: 0;
+		margin: 20px 0;
+	}
+
+	.popup-features li {
+		padding: 8px 0;
+		font-size: 14px;
+		position: relative;
+		padding-left: 25px;
+		opacity: 0.95;
+	}
+
+	.popup-features li::before {
+		content: '✓';
+		position: absolute;
+		left: 0;
+		color: #10b981;
+		font-weight: bold;
+		font-size: 16px;
+	}
+
+	/* Bottoni del popup */
+	.popup-buttons {
+		display: flex;
+		gap: 15px;
+		margin-top: 25px;
+	}
+
+	.btn-primary {
+		flex: 1;
+		background: rgba(255, 255, 255, 0.9);
+		color: #1e3a8a;
+		border: none;
+		padding: 15px 20px;
+		border-radius: 25px;
+		font-size: 16px;
+		font-weight: bold;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		text-decoration: none;
+		display: inline-block;
+		text-align: center;
+	}
+
+	.btn-primary:hover {
+		background: white;
+		transform: translateY(-2px);
+		box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+	}
+
+	.btn-secondary {
+		flex: 1;
+		background: transparent;
+		color: white;
+		border: 2px solid rgba(255, 255, 255, 0.5);
+		padding: 15px 20px;
+		border-radius: 25px;
+		font-size: 16px;
+		font-weight: bold;
+		cursor: pointer;
+		transition: all 0.3s ease;
+	}
+
+	.btn-secondary:hover {
+		background: rgba(255, 255, 255, 0.1);
+		border-color: rgba(255, 255, 255, 0.8);
+	}
+
+	/* Badge promozionale */
+	.promo-badge {
+		position: absolute;
+		top: -10px;
+		right: 20px;
+		background: #ef4444;
+		color: white;
+		padding: 8px 16px;
+		border-radius: 20px;
+		font-size: 12px;
+		font-weight: bold;
+		transform: rotate(12deg);
+		box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+		animation: bounce 2s infinite;
+	}
+
+	@keyframes bounce {
+		0%, 20%, 50%, 80%, 100% { transform: rotate(12deg) translateY(0); }
+		40% { transform: rotate(12deg) translateY(-10px); }
+		60% { transform: rotate(12deg) translateY(-5px); }
+	}
+
+	/* Demo button */
+	.demo-btn {
+		background: #3b82f6;
+		color: white;
+		border: none;
+		padding: 15px 30px;
+		border-radius: 8px;
+		font-size: 16px;
+		cursor: pointer;
+		margin: 20px;
+		transition: background 0.3s ease;
+	}
+
+	.demo-btn:hover {
+		background: #2563eb;
+	}
+
+	/* Contenuto demo */
+	.demo-content {
+		text-align: center;
+		padding: 50px 20px;
+	}
+
+	.demo-content h1 {
+		color: #1e3a8a;
+		margin-bottom: 20px;
+	}
+
+	.demo-content p {
+		color: #6b7280;
+		margin-bottom: 30px;
+	}
+
+	/* Responsive */
+	@media (max-width: 768px) {
+		.popup-content {
+			max-width: 350px;
+			margin: 20px;
+		}
+		
+		.popup-header {
+			padding: 25px 20px 15px;
+		}
+		
+		.popup-body {
+			padding: 0 20px 25px;
+		}
+		
+		.popup-buttons {
+			flex-direction: column;
+		}
+		
+		.popup-logo {
+			font-size: 28px;
+		}
+	}
+
+	/* Stili globali per Bootstrap */
+	:global(.card) {
+		border-radius: 15px;
+		overflow: hidden;
+		animation: slideInUp 0.6s ease-out;
+	}
+
+	:global(.card-header) {
+		background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+		border: none;
+	}
+
+	:global(.form-label) {
+		color: #495057;
+		font-size: 0.95rem;
+	}
+
+	:global(.form-control:focus),
+	:global(.form-select:focus) {
+		border-color: #007bff;
+		box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+	}
+
+	:global(.btn-success) {
+		background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+		border: none;
+		font-weight: 600;
+		transition: all 0.3s ease;
+	}
+
+	:global(.btn-success:hover) {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+	}
+
+	:global(.btn-secondary:not(.popup-buttons .btn-secondary)) {
+		background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+		border: none;
+		font-weight: 600;
+	}
+
+	:global(.alert-info) {
+		background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+		border: 1px solid #b6d4da;
+		border-radius: 10px;
+	}
+
+	:global(.is-valid) {
+		border-color: #28a745;
+	}
+
+	:global(.is-invalid) {
+		border-color: #dc3545;
+	}
+
+	:global(.invalid-feedback) {
+		font-size: 0.875rem;
+		font-weight: 500;
+	}
+
+	@keyframes slideInUp {
+		from {
+			opacity: 0;
+			transform: translateY(30px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	/* Responsive migliorata */
+	@media (max-width: 768px) {
+		:global(.container) {
+			padding-left: 10px;
+			padding-right: 10px;
+		}
+		
+		:global(.card-body) {
+			padding: 1.5rem !important;
+		}
+	}
+</style>
