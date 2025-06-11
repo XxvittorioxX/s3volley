@@ -536,7 +536,6 @@
 	</div>
 </div>
 
-<!-- Aggiungi questo nel tuo app.html o come import nel componente principale -->
 <svelte:head>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -898,10 +897,6 @@
     </style>
 </head>
 <body>
-    <h1>Il tuo sito web</h1>
-    <p>Il popup Sistema3 apparirà automaticamente all'apertura del sito e poi ogni 10 minuti.</p>
-
-    <!-- Popup -->
     <div id="sistema3Popup" class="popup-overlay">
         <div class="popup-content">
             <div class="promo-badge">OFFERTA LIMITATA!</div>
@@ -945,58 +940,50 @@
         let popupShown = false;
         let popupInterval;
 
-        // Event listeners
         document.getElementById('closePopupBtn').addEventListener('click', closePopup);
         document.getElementById('laterBtn').addEventListener('click', closePopup);
 
-        // Funzione per mostrare popup automatico
         function showAutoPopup() {
             showPopup();
             popupShown = true;
         }
 
-        // Popup automatico all'apertura del sito (dopo 3 secondi)
         window.addEventListener('load', function() {
             setTimeout(showAutoPopup, 3000);
             
-            // Imposta intervallo per popup ogni 10 minuti (600.000 ms)
             popupInterval = setInterval(showAutoPopup, 600000);
         });
 
         function showPopup() {
             const popup = document.getElementById('sistema3Popup');
             popup.classList.add('show');
-            document.body.style.overflow = 'hidden'; // Blocca scroll
+            document.body.style.overflow = 'hidden'; 
         }
 
         function closePopup() {
             const popup = document.getElementById('sistema3Popup');
             popup.classList.remove('show');
-            document.body.style.overflow = 'auto'; // Riabilita scroll
+            document.body.style.overflow = 'auto';
         }
 
-        // Chiudi popup cliccando fuori
         document.getElementById('sistema3Popup').addEventListener('click', function(e) {
             if (e.target === this) {
                 closePopup();
             }
         });
 
-        // Chiudi popup con ESC
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closePopup();
             }
         });
 
-        // Ferma l'intervallo quando la pagina viene chiusa
         window.addEventListener('beforeunload', function() {
             if (popupInterval) {
                 clearInterval(popupInterval);
             }
         });
 
-        // Tracking (opzionale)
         document.querySelector('.btn-primary').addEventListener('click', function() {
             console.log('Click su "Scopri di Più" - Sistema3');
         });
