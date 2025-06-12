@@ -1,4 +1,4 @@
-import { json } from '@sveltejs/kit';
+ import { json } from '@sveltejs/kit';
 import { db } from '$lib/db.js';
 import { teams } from '$lib/schema.js';
 import { eq } from 'drizzle-orm';
@@ -66,3 +66,4 @@ export async function POST({ request }) {
     }, { status: 500 });
   }
 }
+                                                                             
