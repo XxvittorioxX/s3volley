@@ -129,14 +129,15 @@
 		};
 		return rules[category] || { maxScore: 15 };
 	}
+
 	function getAvailableFields(currentMatchId: string, isKnockout = false): number[] {
-	const allMatches = isKnockout ? knockoutMatches : groupMatches;
-	const usedFields = allMatches
-		.filter(m => m.id !== currentMatchId && m.field !== undefined)
-		.map(m => m.field!);
-	
-	return fields.filter(field => !usedFields.includes(field));
-}		
+		const allMatches = isKnockout ? knockoutMatches : groupMatches;
+		const usedFields = allMatches
+			.filter(m => m.id !== currentMatchId && m.field !== undefined)
+			.map(m => m.field!);
+		
+		return fields.filter(field => !usedFields.includes(field));
+	}		
 
 	function isValidScore(score1: number, score2: number, category: string): boolean {
 		const { maxScore } = getScoreRules(category);
@@ -290,26 +291,24 @@
 		saveState();
 	}
 
-function setFieldForMatch(matchId: string, field: number, isKnockout = false) {
-	const matches = isKnockout ? knockoutMatches : groupMatches;
-	const match = matches.find(m => m.id === matchId);
-	if (match) {
-		// Verifica che il campo sia ancora disponibile
-		const availableFields = getAvailableFields(matchId, isKnockout);
-		if (availableFields.includes(field)) {
-			match.field = field;
-			if (isKnockout) {
-				knockoutMatches = [...knockoutMatches];
+	function setFieldForMatch(matchId: string, field: number, isKnockout = false) {
+		const matches = isKnockout ? knockoutMatches : groupMatches;
+		const match = matches.find(m => m.id === matchId);
+		if (match) {
+			const availableFields = getAvailableFields(matchId, isKnockout);
+			if (availableFields.includes(field)) {
+				match.field = field;
+				if (isKnockout) {
+					knockoutMatches = [...knockoutMatches];
+				} else {
+					groupMatches = [...groupMatches];
+				}
+				saveState();
 			} else {
-				groupMatches = [...groupMatches];
+				alert(`Il campo ${field} è già occupato da un'altra partita!`);
 			}
-			saveState();
-		} else {
-			alert(`Il campo ${field} è già occupato da un'altra partita!`);
 		}
 	}
-}
-
 
 	function resetMatchResult(matchId: string) {
 		const match = groupMatches.find(m => m.id === matchId);
@@ -326,144 +325,210 @@ function setFieldForMatch(matchId: string, field: number, isKnockout = false) {
 		saveState();
 	}
 
-
-function startKnockoutPhase() {
-	qualifiedTeams = {};
+	function startKnockoutPhase() {
+		qualifiedTeams = {};
 		categories.forEach(category => {
-		qualifiedTeams[category] = [];
-		groupsByCategory[category].forEach(groupName => {
-			const standings = groupStandings[groupName];
-			if (standings && standings.length >= 2) {
-				const qualified = standings.slice(0, 2).map(s => s.team);
-				qualifiedTeams[category] = [...qualifiedTeams[category], ...qualified];
+			qualifiedTeams[category] = [];
+			groupsByCategory[category].forEach(groupName => {
+				const standings = groupStandings[groupName];
+				if (standings && standings.length >= 2) {
+					const qualified = standings.slice(0, 2).map(s => s.team);
+					qualifiedTeams[category] = [...qualifiedTeams[category], ...qualified];
+				}
+			});
+
+			if (qualifiedTeams[category].length < 2) {
+				alert(`Non ci sono abbastanza squadre qualificate per ${category}!`);
+				return;
 			}
 		});
 
-		if (qualifiedTeams[category].length < 2) {
-			alert(`Non ci sono abbastanza squadre qualificate per ${category}!`);
+		knockoutMatches = [];
+		
+		categories.forEach(category => {
+			const categoryQualified = qualifiedTeams[category];
+			if (categoryQualified.length < 2) return;
+			
+			const firstPlaces: Team[] = [];
+			const secondPlaces: Team[] = [];
+			const groupNames = groupsByCategory[category];
+
+			groupNames.forEach(groupName => {
+				const standings = groupStandings[groupName];
+				if (standings && standings.length >= 2) {
+					firstPlaces.push(standings[0].team); 
+					secondPlaces.push(standings[1].team); 
+				}
+			});
+
+			let round = 1;
+			let current: Match[] = [];
+
+			// Accoppiamenti corretti: 1° vs 2° di altri gironi
+			const shuffledSecondPlaces = [...secondPlaces].sort(() => Math.random() - 0.5);
+			
+			for (let i = 0; i < firstPlaces.length && i < shuffledSecondPlaces.length; i++) {
+				const matchId = `ko-${category}-${round}-${current.length}`;
+				current.push({
+					id: matchId, 
+					t1: firstPlaces[i], 
+					t2: shuffledSecondPlaces[i],
+					w: null, 
+					round, 
+					phase: 'knockout', 
+					category, 
+					field: undefined
+				});
+				initTempScore(matchId);
+			}
+
+			// Se ci sono seconde classificate rimanenti, le facciamo scontrare tra loro
+			const remainingSeconds = shuffledSecondPlaces.slice(firstPlaces.length);
+			for (let i = 0; i < remainingSeconds.length; i += 2) {
+				if (remainingSeconds[i + 1]) {
+					const matchId = `ko-${category}-${round}-${current.length}`;
+					current.push({
+						id: matchId, 
+						t1: remainingSeconds[i], 
+						t2: remainingSeconds[i + 1],
+						w: null, 
+						round, 
+						phase: 'knockout', 
+						category, 
+						field: undefined
+					});
+					initTempScore(matchId);
+				}
+			}
+
+			knockoutMatches = [...knockoutMatches, ...current];
+
+			// Crea i turni successivi
+			while (current.length > 1) {
+				round++;
+				const next: Match[] = [];
+				for (let i = 0; i < current.length; i += 2) {
+					const matchId = `ko-${category}-${round}-${Math.floor(i/2)}`;
+					next.push({ 
+						id: matchId, 
+						t1: null, 
+						t2: null, 
+						w: null, 
+						round, 
+						phase: 'knockout', 
+						category, 
+						field: undefined
+					});
+					initTempScore(matchId);
+				}
+				knockoutMatches = [...knockoutMatches, ...next];
+				current = next;
+			}
+		});
+
+		currentPhase = 'knockout';
+		saveState();
+	}
+
+	function setKnockoutResult(matchId: string, score1: number, score2: number) {
+		const match = knockoutMatches.find(m => m.id === matchId);
+		if (!match || !match.t1 || !match.t2 || !match.category) return;
+
+		if (!isValidScore(score1, score2, match.category)) {
+			const { maxScore } = getScoreRules(match.category);
+			alert(`Punteggio non valido per ${match.category}!\n${getCategoryRules(match.category)}\n\nEsempio valido: ${maxScore}-${maxScore-1}`);
 			return;
 		}
-	});
 
-	knockoutMatches = [];
-	
-	categories.forEach(category => {
-		const categoryQualified = qualifiedTeams[category];
-		if (categoryQualified.length < 2) return;
-		const firstPlaces: Team[] = [];
-		const secondPlaces: Team[] = [];
-		const groupNames = groupsByCategory[category];
-
-		groupNames.forEach(groupName => {
-			const standings = groupStandings[groupName];
-			if (standings && standings.length >= 2) {
-				firstPlaces.push(standings[0].team); 
-				secondPlaces.push(standings[1].team); 
+		// Aggiorna il match corrente
+		knockoutMatches = knockoutMatches.map(m => {
+			if (m.id === matchId) {
+				return {
+					...m,
+					score1,
+					score2,
+					w: score1 > score2 ? m.t1 : m.t2
+				};
 			}
+			return m;
 		});
 
-		let round = 1;
-		let current: Match[] = [];
+		const updatedMatch = knockoutMatches.find(m => m.id === matchId);
+		if (!updatedMatch || !updatedMatch.w || updatedMatch.round === undefined) return;
 
-		for (let i = 0; i < firstPlaces.length; i++) {
-
-			let opponentIndex = (i + 1) % secondPlaces.length;
-			
-			if (secondPlaces.length > 2) {
-				opponentIndex = (i + Math.floor(secondPlaces.length / 2)) % secondPlaces.length;
-			}
-
-			if (firstPlaces[i] && secondPlaces[opponentIndex]) {
-				current.push({
-					id: `ko-${category}-${round}-${current.length}`, 
-					t1: firstPlaces[i], 
-					t2: secondPlaces[opponentIndex],
-					w: null, 
-					round, 
-					phase: 'knockout', 
-					category, 
-					field: undefined
-				});
-
-				secondPlaces.splice(opponentIndex, 1);
-			}
-		}
-
-		const remainingSeconds = secondPlaces;
-		for (let i = 0; i < remainingSeconds.length; i += 2) {
-			if (remainingSeconds[i + 1]) {
-				current.push({
-					id: `ko-${category}-${round}-${current.length}`, 
-					t1: remainingSeconds[i], 
-					t2: remainingSeconds[i + 1],
-					w: null, 
-					round, 
-					phase: 'knockout', 
-					category, 
-					field: undefined
-				});
-			}
-		}
-
-		knockoutMatches = [...knockoutMatches, ...current];
-
-		while (current.length > 1) {
-			round++;
-			const next: Match[] = [];
-			for (let i = 0; i < current.length; i += 2) {
-				next.push({ 
-					id: `ko-${category}-${round}-${Math.floor(i/2)}`, 
-					t1: null, 
-					t2: null, 
-					w: null, 
-					round, 
-					phase: 'knockout', 
-					category, 
-					field: undefined
-				});
-			}
-			knockoutMatches = [...knockoutMatches, ...next];
-			current = next;
-		}
-	});
-
-	currentPhase = 'knockout';
-	saveState();
-}
-
-	function setKnockoutWinner(id: string, winnerTeam: Team) {
-		knockoutMatches = knockoutMatches.map(m => m.id === id ? { ...m, w: winnerTeam } : m);
-
-		const match = knockoutMatches.find(m => m.id === id);
-		if (!match || match.round === undefined || !match.category) return;
-
-		const currentRound = match.round;
-		const nextRound = knockoutMatches.filter(m => m.round === currentRound + 1 && m.category === match.category);
-		const matchIndex = parseInt(match.id.split('-')[3]);
+		// Propaga il vincitore al turno successivo
+		const currentRound = updatedMatch.round;
+		const nextRound = knockoutMatches.filter(m => m.round === currentRound + 1 && m.category === updatedMatch.category);
+		const matchIndex = parseInt(updatedMatch.id.split('-')[3]);
 		const nextMatch = nextRound[Math.floor(matchIndex / 2)];
 
 		if (nextMatch) {
 			knockoutMatches = knockoutMatches.map(m => {
 				if (m.id === nextMatch.id) {
-					return matchIndex % 2 === 0 ? { ...m, t1: winnerTeam } : { ...m, t2: winnerTeam };
+					return matchIndex % 2 === 0 ? 
+						{ ...m, t1: updatedMatch.w } : 
+						{ ...m, t2: updatedMatch.w };
 				}
 				return m;
 			});
 		}
 
-		const categoryMatches = knockoutMatches.filter(m => m.category === match.category);
+		// Controlla se abbiamo un vincitore della categoria
+		const categoryMatches = knockoutMatches.filter(m => m.category === updatedMatch.category);
 		const maxRound = Math.max(...categoryMatches.map(m => m.round || 0));
 		const final = categoryMatches.find(m => m.round === maxRound);
 		
 		if (final?.w) {
-			winner[match.category] = final.w;
+			winner[updatedMatch.category] = final.w;
 		}
 
+		// Controlla se il torneo è finito
 		const allCategoriesFinished = categories.every(cat => winner[cat]);
 		if (allCategoriesFinished) {
 			currentPhase = 'finished';
 		}
 		
+		saveState();
+	}
+
+	function resetKnockoutResult(matchId: string) {
+		const match = knockoutMatches.find(m => m.id === matchId);
+		if (!match) return;
+
+		// Reset del match corrente
+		knockoutMatches = knockoutMatches.map(m => {
+			if (m.id === matchId) {
+				return { ...m, score1: undefined, score2: undefined, w: null };
+			}
+			return m;
+		});
+
+		// Reset dei match successivi che dipendevano da questo risultato
+		const resetNextRounds = (fromRound: number, category: string) => {
+			const nextRoundMatches = knockoutMatches.filter(m => 
+				m.category === category && m.round !== undefined && m.round > fromRound
+			);
+			
+			nextRoundMatches.forEach(nextMatch => {
+				knockoutMatches = knockoutMatches.map(m => {
+					if (m.id === nextMatch.id) {
+						return { ...m, t1: null, t2: null, score1: undefined, score2: undefined, w: null };
+					}
+					return m;
+				});
+			});
+		};
+
+		if (match.round && match.category) {
+			resetNextRounds(match.round, match.category);
+			// Reset del vincitore se necessario
+			if (winner[match.category]) {
+				winner[match.category] = null;
+				currentPhase = 'knockout';
+			}
+		}
+
+		tempScores[matchId] = { score1: 0, score2: 0 };
 		saveState();
 	}
 
@@ -593,7 +658,6 @@ function startKnockoutPhase() {
 												</strong>
 											</div>
 											<div class="d-flex gap-1 mt-2">
-												<!-- svelte-ignore a11y_consider_explicit_label -->
 												<button class="btn btn-outline-warning btn-sm flex-fill" on:click={() => resetMatchResult(match.id)}>
 													<i class="bi bi-arrow-clockwise"></i>
 												</button>
@@ -611,7 +675,6 @@ function startKnockoutPhase() {
 											<div class="d-flex gap-1">
 												<input type="number" class="form-control form-control-sm" placeholder="0" bind:value={tempScores[match.id].score1} min="0" max={getScoreRules(match.category || '').maxScore + 10}>
 												<input type="number" class="form-control form-control-sm" placeholder="0" bind:value={tempScores[match.id].score2} min="0" max={getScoreRules(match.category || '').maxScore + 10}>
-												<!-- svelte-ignore a11y_consider_explicit_label -->
 												<button class="btn btn-success btn-sm" on:click={() => setGroupResult(match.id, tempScores[match.id].score1, tempScores[match.id].score2)}>
 													<i class="bi bi-check"></i>
 												</button>
@@ -643,6 +706,7 @@ function startKnockoutPhase() {
 			<div class="card mb-4">
 				<div class="card-header bg-warning text-dark">
 					<h5 class="mb-0">{category}</h5>
+					<small>{getCategoryRules(category)}</small>
 				</div>
 				<div class="card-body">
 					{#each knockoutRoundsByCategory[category] || [] as round}
@@ -658,105 +722,62 @@ function startKnockoutPhase() {
 												{match.t1?.teamName || 'TBD'} vs {match.t2?.teamName || 'TBD'}
 											</small>
 											{#if match.field}
-												<span class="badge bg-secondary">Campo {match.field}</span>
-											{/if}
-										</div>
-										
-										{#if match.t1 && match.t2}
-											{#if match.w}
-												<div class="text-center">
-													<strong class="text-warning">Vincitore: {match.w.teamName}</strong>
-												</div>
-											{:else}
-												<div class="d-flex gap-1">
-													<button class="btn btn-outline-primary btn-sm flex-fill" on:click={() => setKnockoutWinner(match.id, match.t1!)}>
-														{match.t1.teamName}
-													</button>
-													<button class="btn btn-outline-primary btn-sm flex-fill" on:click={() => setKnockoutWinner(match.id, match.t2!)}>
-														{match.t2.teamName}
-													</button>
-												</div>
-											{/if}
-											<select class="form-select form-select-sm mt-1" bind:value={match.field} on:change={() => setFieldForMatch(match.id, match.field!, true)}>
-												<option value={undefined}>Campo</option>
-												{#each fields as field}
-													<option value={field}>{field}</option>
-												{/each}
-											</select>
-										{:else}
-											<div class="text-center text-muted">
-												<small>In attesa dei risultati precedenti</small>
-											</div>
+											<span class="badge bg-secondary">Campo {match.field}</span>
 										{/if}
 									</div>
-								</div>
-							{/each}
-						</div>
-					{/each}
-				</div>
-			</div>
-		{/each}
-	{:else if currentPhase === 'finished'}
-		<div class="text-center">
-			<h2 class="text-success mb-4">🏆 TORNEO COMPLETATO!</h2>
-			 
-			<div class="card">
-				<div class="card-header bg-success text-white">
-					<h3>VINCITORI</h3>
-				</div>
-				<div class="card-body">
-					{#each categories as category}
-						{#if winner[category]}
-							<div class="row mb-3">
-								<div class="col-md-6 offset-md-3">
-									<div class="alert alert-success">
-										<h4 class="mb-2">🏆 {category}</h4>
-										<h5 class="text-primary">{winner[category].teamName}</h5>
-									</div>
+									
+									{#if match.t1 && match.t2}
+										{#if match.score1 !== undefined && match.score2 !== undefined}
+											<div class="text-center">
+												<strong class={match.w === match.t1 ? 'text-success' : match.w === match.t2 ? 'text-danger' : ''}>
+													{match.score1} - {match.score2}
+												</strong>
+												<div class="text-warning mt-1">
+													<small>Vincitore: {match.w?.teamName}</small>
+												</div>
+											</div>
+											<div class="d-flex gap-1 mt-2">
+												<button class="btn btn-outline-warning btn-sm flex-fill" on:click={() => resetKnockoutResult(match.id)}>
+													<i class="bi bi-arrow-clockwise"></i>
+												</button>
+												<select class="form-select form-select-sm" bind:value={match.field} on:change={() => setFieldForMatch(match.id, match.field!, true)}>
+													<option value={undefined}>Campo</option>
+													{#each getAvailableFields(match.id, true) as field}
+														<option value={field}>{field}</option>
+													{/each}
+													{#if match.field && !getAvailableFields(match.id, true).includes(match.field)}
+														<option value={match.field}>{match.field}</option>
+													{/if}
+												</select>
+											</div>
+										{:else}
+											<div class="d-flex gap-1">
+												<input type="number" class="form-control form-control-sm" placeholder="0" bind:value={tempScores[match.id].score1} min="0" max={getScoreRules(match.category || '').maxScore + 10}>
+												<input type="number" class="form-control form-control-sm" placeholder="0" bind:value={tempScores[match.id].score2} min="0" max={getScoreRules(match.category || '').maxScore + 10}>
+												<button class="btn btn-success btn-sm" on:click={() => setKnockoutResult(match.id, tempScores[match.id].score1, tempScores[match.id].score2)}>
+													<i class="bi bi-check"></i>
+												</button>
+											</div>
+											<select class="form-select form-select-sm mt-1" bind:value={match.field} on:change={() => setFieldForMatch(match.id, match.field!, true)}>
+												<option value={undefined}>Campo</option>
+												{#each getAvailableFields(match.id, true) as field}
+													<option value={field}>{field}</option>
+												{/each}
+												{#if match.field && !getAvailableFields(match.id, true).includes(match.field)}
+													<option value={match.field}>{match.field}</option>
+												{/if}
+											</select>
+										{/if}
+									{:else}
+										<div class="text-center text-muted">
+											<small>In attesa dei risultati precedenti</small>
+										</div>
+									{/if}
 								</div>
 							</div>
-						{/if}
-					{/each}
-				</div>
-			</div>
-
-			<div class="card mt-4">
-				<div class="card-header bg-primary text-white">
-					<h4>STATISTICHE TORNEO</h4>
-				</div>
-				<div class="card-body">
-					<div class="row text-center">
-						<div class="col-3">
-							<h5>{teams.length}</h5>
-							<p class="text-muted mb-0">Squadre</p>
-						</div>
-						<div class="col-3">
-							<h5>{categories.length}</h5>
-							<p class="text-muted mb-0">Categorie</p>
-						</div>
-						<div class="col-3">
-							<h5>{groupMatches.length + knockoutMatches.length}</h5>
-							<p class="text-muted mb-0">Partite</p>
-						</div>
-						<div class="col-3">
-							<h5>{fields.length}</h5>
-							<p class="text-muted mb-0">Campi</p>
-						</div>
+						{/each}
 					</div>
-				</div>
-			</div>
-
-			<div class="mt-4">
-				<button class="btn btn-primary me-2" on:click={exportResults}>
-					<i class="bi bi-download"></i> Esporta
-				</button>
-				<button class="btn btn-outline-secondary me-2" on:click={printResults}>
-					<i class="bi bi-printer"></i> Stampa
-				</button>
-				<button class="btn btn-success" on:click={reset}>
-					<i class="bi bi-arrow-clockwise"></i> Nuovo Torneo
-				</button>
+				{/each}
 			</div>
 		</div>
-	{/if}
-</div>
+	{/each}
